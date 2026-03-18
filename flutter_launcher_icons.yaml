@@ -1,0 +1,25 @@
+flutter_launcher_icons:
+  android: true
+  ios: false
+  
+  # 完整圖標路徑
+  image_path: "paper-plane.png"
+  
+  # Adaptive icon 配置
+  adaptive_icon_foreground: "paper-plane.png"
+  adaptive_icon_background: "#FFFFFF"
+  
+  # 確保生成高質量圖標
+  min_sdk_android: 21
+  
+  # 移除舊圖標的 alpha 通道
+  remove_alpha_ios: false
+  
+  web:
+    generate: true
+    image_path: "paper-plane.png"
+  
+  windows:
+    generate: false
+  macos:
+    generate: false

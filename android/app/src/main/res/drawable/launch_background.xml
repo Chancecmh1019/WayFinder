@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WayFinder Launch Splash Screen - Minimalist Black & White Design -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pure white background -->
+    <item android:drawable="@android:color/white" />
+
+    <!-- App icon in center -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@mipmap/ic_launcher" />
+    </item>
+    
+    <!-- Optional: Add app name text below icon -->
+    <!-- Uncomment when custom splash assets are ready -->
+    <!-- <item android:bottom="100dp">
+        <bitmap
+            android:gravity="center|bottom"
+            android:src="@drawable/splash_text" />
+    </item> -->
+</layer-list>

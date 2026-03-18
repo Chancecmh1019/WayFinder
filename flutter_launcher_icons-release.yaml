@@ -1,0 +1,12 @@
+flutter_launcher_icons:
+  android: true
+  ios: false
+  
+  # 完整圖標（用於舊版 Android 和 APK 預覽）
+  image_path: "paper-plane.png"
+  
+  # Adaptive icon（用於 Android 8.0+）
+  adaptive_icon_foreground: "paper-plane.png"
+  adaptive_icon_background: "#FFFFFF"
+  
+  min_sdk_android: 21

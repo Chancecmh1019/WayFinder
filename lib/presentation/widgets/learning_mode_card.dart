@@ -1,0 +1,707 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../theme/app_theme.dart';
+import '../../data/models/fsrs_card_model.dart';
+import '../../data/models/vocab_models_enhanced.dart';
+import '../../core/providers/app_providers.dart';
+import '../../core/providers/tts_providers.dart';
+import '../widgets/common/audio_button.dart';
+import '../../domain/services/fsrs_algorithm.dart';
+
+/// Â≠∏Á?Ê®°Â??°Á? Widget
+/// 
+/// ?πÊ?‰∏çÂ??ÑÂ≠∏ÁøíÊ®°ÂºèÈ°ØÁ§∫‰??åÁ?‰∫íÂ?‰ªãÈù¢
+class LearningModeCard extends ConsumerStatefulWidget {
+  final FSRSCardModel card;
+  final String mode; // 'flashcard', 'recognition', 'reverse', 'fillBlank', 'spelling', 'distinguish'
+  final bool isDark;
+  final Function(FSRSRating rating) onRate;
+
+  const LearningModeCard({
+    super.key,
+    required this.card,
+    required this.mode,
+    required this.isDark,
+    required this.onRate,
+  });
+
+  @override
+  ConsumerState<LearningModeCard> createState() => _LearningModeCardState();
+}
+
+class _LearningModeCardState extends ConsumerState<LearningModeCard> {
+  String? _selectedAnswer;
+  bool? _isCorrect;
+  final _textController = TextEditingController();
+  Future<Map<String, dynamic>>? _wordDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // ?™Âú®?ùÂ??ñÊ??†Ë?‰∏ÄÊ¨°Êï∏??
+    _wordDataFuture = _loadWordData();
+  }
+
+  @override
+  void didUpdateWidget(LearningModeCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // ?∂Âç°?áÊîπËÆäÊ??çÊñ∞?†Ë??∏Ê?‰∏¶È?ÁΩÆÁ???
+    if (oldWidget.card.lemma != widget.card.lemma || 
+        oldWidget.card.senseId != widget.card.senseId) {
+      setState(() {
+        _selectedAnswer = null;
+        _isCorrect = null;
+        _textController.clear();
+        _wordDataFuture = _loadWordData();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    switch (widget.mode) {
+      case 'recognition':
+        return _buildRecognitionMode();
+      case 'reverse':
+        return _buildReverseMode();
+      case 'fillBlank':
+        return _buildFillBlankMode();
+      case 'spelling':
+        return _buildSpellingMode();
+      case 'distinguish':
+        return _buildDistinguishMode();
+      case 'flashcard':
+      default:
+        return _buildFlashcardMode();
+    }
+  }
+
+  /// ÁøªÂç°Ê®°Â?ÔºàÂ∑≤ÂØ¶ÁèæÔº?
+  Widget _buildFlashcardMode() {
+    // ?ôÂÄãÊ®°ÂºèÂ∑≤Á∂ìÂú® fsrs_learning_screen.dart ‰∏≠ÂØ¶??
+    return const SizedBox.shrink();
+  }
+
+  /// Ë≠òÂà•Ê®°Â?ÔºöÁ??±Ê??∏‰∏≠??
+  Widget _buildRecognitionMode() {
+    return FutureBuilder(
+      future: _wordDataFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final data = snapshot.data as Map<String, dynamic>;
+        final sense = data['sense'] as VocabSenseModel;
+        final options = data['options'] as List<String>;
+        final correctAnswer = sense.zhDef;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: widget.isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+            boxShadow: widget.isDark ? null : AppTheme.elevatedShadow,
+          ),
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '?∏Ê?Ê≠?¢∫?Ñ‰∏≠?áÈ?Áæ?,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: AppTheme.weightBold,
+                  letterSpacing: 1.5,
+                  color: AppTheme.gray400,
+                ),
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.card.lemma,
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamilyEnglish,
+                        fontSize: 48,
+                        fontWeight: AppTheme.weightSemiBold,
+                        letterSpacing: -2,
+                        height: 0.9,
+                        color: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                      ),
+                    ),
+                  ),
+                  AudioButton(text: widget.card.lemma, size: 20),
+                ],
+              ),
+              const Spacer(),
+              ...options.asMap().entries.map((entry) {
+                final index = entry.key;
+                final option = entry.value;
+                final isSelected = _selectedAnswer == option;
+                final isCorrectOption = option == correctAnswer;
+                final showResult = _selectedAnswer != null;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _OptionButton(
+                    label: option,
+                    index: index,
+                    isSelected: isSelected,
+                    isCorrect: showResult && isCorrectOption,
+                    isWrong: showResult && isSelected && !isCorrectOption,
+                    enabled: !showResult,
+                    isDark: widget.isDark,
+                    onTap: () {
+                      setState(() {
+                        _selectedAnswer = option;
+                        _isCorrect = option == correctAnswer;
+                      });
+                      
+                      // Âª∂ÈÅ≤ÂæåËá™?ïË???
+                      Future.delayed(const Duration(milliseconds: 800), () {
+                        if (mounted && _isCorrect != null) {
+                          widget.onRate(_isCorrect! ? FSRSRating.good : FSRSRating.again);
+                        }
+                      });
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// ?çÂ?Ê®°Â?ÔºöÁ?‰∏≠Ê??∏Ëã±??
+  Widget _buildReverseMode() {
+    return FutureBuilder(
+      future: _wordDataFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final data = snapshot.data as Map<String, dynamic>;
+        final sense = data['sense'] as VocabSenseModel;
+        final options = data['reverseOptions'] as List<String>;
+        final correctAnswer = widget.card.lemma;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: widget.isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+            boxShadow: widget.isDark ? null : AppTheme.elevatedShadow,
+          ),
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '?∏Ê?Ê≠?¢∫?ÑËã±?áÂñÆÂ≠?,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: AppTheme.weightBold,
+                  letterSpacing: 1.5,
+                  color: AppTheme.gray400,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                sense.zhDef,
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: AppTheme.weightSemiBold,
+                  letterSpacing: -1,
+                  color: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                ),
+              ),
+              if (sense.enDef != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  sense.enDef!,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.fontFamilyEnglish,
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: AppTheme.gray600,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              ...options.asMap().entries.map((entry) {
+                final index = entry.key;
+                final option = entry.value;
+                final isSelected = _selectedAnswer == option;
+                final isCorrectOption = option == correctAnswer;
+                final showResult = _selectedAnswer != null;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _OptionButton(
+                    label: option,
+                    index: index,
+                    isSelected: isSelected,
+                    isCorrect: showResult && isCorrectOption,
+                    isWrong: showResult && isSelected && !isCorrectOption,
+                    enabled: !showResult,
+                    isDark: widget.isDark,
+                    onTap: () {
+                      setState(() {
+                        _selectedAnswer = option;
+                        _isCorrect = option == correctAnswer;
+                      });
+                      
+                      Future.delayed(const Duration(milliseconds: 800), () {
+                        if (mounted && _isCorrect != null) {
+                          widget.onRate(_isCorrect! ? FSRSRating.good : FSRSRating.again);
+                        }
+                      });
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Â°´Á©∫Ê®°Â?ÔºöÊ†π?ö‰??•Â°´Á©?
+  Widget _buildFillBlankMode() {
+    return FutureBuilder(
+      future: _wordDataFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final data = snapshot.data as Map<String, dynamic>;
+        final sense = data['sense'] as VocabSenseModel;
+        final example = sense.examples.firstOrNull;
+        
+        if (example == null) {
+          // Ê≤íÊ?‰æãÂè•ÔºåÈ?Á¥öÁÇ∫Ë≠òÂà•Ê®°Â?
+          return _buildRecognitionMode();
+        }
+
+        // Â∞á‰??•‰∏≠?ÑÂñÆÂ≠óÊõø?õÁÇ∫Á©∫Ê†º
+        final sentenceWithBlank = example.text.replaceAll(
+          RegExp(widget.card.lemma, caseSensitive: false),
+          '______',
+        );
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: widget.isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+            boxShadow: widget.isDark ? null : AppTheme.elevatedShadow,
+          ),
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Â°´ÂÖ•Ê≠?¢∫?ÑÂñÆÂ≠?,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: AppTheme.weightBold,
+                  letterSpacing: 1.5,
+                  color: AppTheme.gray400,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: widget.isDark ? AppTheme.gray850 : AppTheme.gray50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  sentenceWithBlank,
+                  style: TextStyle(
+                    fontFamily: AppTheme.fontFamilyEnglish,
+                    fontSize: 16,
+                    height: 1.6,
+                    color: widget.isDark ? AppTheme.gray200 : AppTheme.gray800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '?êÁ§∫Ôº?{sense.zhDef}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.gray500,
+                ),
+              ),
+              const Spacer(),
+              TextField(
+                controller: _textController,
+                enabled: _selectedAnswer == null,
+                decoration: InputDecoration(
+                  hintText: 'Ëº∏ÂÖ•?ÆÂ?...',
+                  filled: true,
+                  fillColor: widget.isDark ? AppTheme.gray850 : AppTheme.pureWhite,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onSubmitted: (value) => _checkAnswer(value.trim().toLowerCase()),
+              ),
+              const SizedBox(height: 12),
+              if (_selectedAnswer == null)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => _checkAnswer(_textController.text.trim().toLowerCase()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                      foregroundColor: widget.isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
+                    ),
+                    child: const Text('?ê‰∫§'),
+                  ),
+                ),
+              if (_selectedAnswer != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isCorrect! 
+                        ? (widget.isDark ? AppTheme.gray800 : AppTheme.gray100)
+                        : (widget.isDark ? AppTheme.gray850 : AppTheme.gray50),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isCorrect! ? Icons.check_circle : Icons.cancel,
+                        color: _isCorrect! ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _isCorrect! 
+                              ? 'Ê≠?¢∫Ôº? 
+                              : 'Ê≠?¢∫Á≠îÊ?Ôº?{widget.card.lemma}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// ?ºÂØ´Ê®°Â?ÔºöËÅΩ?≥ÊãºÂ≠?
+  Widget _buildSpellingMode() {
+    return FutureBuilder(
+      future: _wordDataFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final data = snapshot.data as Map<String, dynamic>;
+        final sense = data['sense'] as VocabSenseModel;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: widget.isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+            borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+            boxShadow: widget.isDark ? null : AppTheme.elevatedShadow,
+          ),
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                '?ΩÈü≥?ºÂØ´',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: AppTheme.weightBold,
+                  letterSpacing: 1.5,
+                  color: AppTheme.gray400,
+                ),
+              ),
+              const Spacer(),
+              // ?≠Êîæ?âÈ?
+              GestureDetector(
+                onTap: () {
+                  // ?≠Êîæ?ºÈü≥
+                  ref.read(activeTtsServiceProvider).speak(widget.card.lemma);
+                },
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: widget.isDark ? AppTheme.gray800 : AppTheme.gray100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.volume_up_rounded,
+                    size: 40,
+                    color: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                sense.zhDef,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: AppTheme.weightMedium,
+                  color: widget.isDark ? AppTheme.gray300 : AppTheme.gray700,
+                ),
+              ),
+              const Spacer(),
+              TextField(
+                controller: _textController,
+                enabled: _selectedAnswer == null,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamilyEnglish,
+                  fontSize: 24,
+                  letterSpacing: 2,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Ëº∏ÂÖ•?ºÂØ´...',
+                  filled: true,
+                  fillColor: widget.isDark ? AppTheme.gray850 : AppTheme.pureWhite,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onSubmitted: (value) => _checkAnswer(value.trim().toLowerCase()),
+              ),
+              const SizedBox(height: 12),
+              if (_selectedAnswer == null)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => _checkAnswer(_textController.text.trim().toLowerCase()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                      foregroundColor: widget.isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
+                    ),
+                    child: const Text('?ê‰∫§'),
+                  ),
+                ),
+              if (_selectedAnswer != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isCorrect! 
+                        ? (widget.isDark ? AppTheme.gray800 : AppTheme.gray100)
+                        : (widget.isDark ? AppTheme.gray850 : AppTheme.gray50),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _isCorrect! ? Icons.check_circle : Icons.cancel,
+                        color: _isCorrect! ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        _isCorrect! 
+                            ? 'Ê≠?¢∫Ôº? 
+                            : 'Ê≠?¢∫Á≠îÊ?Ôº?{widget.card.lemma}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: AppTheme.weightMedium,
+                          color: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Ëæ®Ê?Ê®°Â?ÔºöÁõ∏‰ººË?Ëæ®Ê?
+  Widget _buildDistinguishMode() {
+    // ?ôÂÄãÊ®°ÂºèÈ?Ë¶ÅÊ∑∑Ê∑ÜË??∏Ê?ÔºåÊö´?ÇÈ?Á¥öÁÇ∫Ë≠òÂà•Ê®°Â?
+    return _buildRecognitionMode();
+  }
+
+  void _checkAnswer(String answer) {
+    final correctAnswer = widget.card.lemma.toLowerCase();
+    final isCorrect = answer == correctAnswer;
+    
+    setState(() {
+      _selectedAnswer = answer;
+      _isCorrect = isCorrect;
+    });
+    
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        widget.onRate(isCorrect ? FSRSRating.good : FSRSRating.again);
+      }
+    });
+  }
+
+  Future<Map<String, dynamic>> _loadWordData() async {
+    final vocabService = ref.read(localVocabServiceProvider);
+    final db = await vocabService.loadDatabase();
+    final word = db.words.where((w) => w.lemma == widget.card.lemma).firstOrNull;
+    
+    if (word == null) {
+      throw Exception('Word not found: ${widget.card.lemma}');
+    }
+    
+    final sense = word.senses
+            .where((s) => s.senseId == widget.card.senseId)
+            .firstOrNull ??
+        word.senses.first;
+    
+    // ?üÊ??∏È?ÔºàË??•Ê®°ÂºèÔ?
+    final options = <String>[sense.zhDef];
+    final otherWords = db.words.where((w) => w.lemma != widget.card.lemma).toList()..shuffle();
+    for (var i = 0; i < 3 && i < otherWords.length; i++) {
+      if (otherWords[i].senses.isNotEmpty) {
+        options.add(otherWords[i].senses.first.zhDef);
+      }
+    }
+    options.shuffle();
+    
+    // ?üÊ??∏È?ÔºàÂ??ëÊ®°ÂºèÔ?
+    final reverseOptions = <String>[widget.card.lemma];
+    for (var i = 0; i < 3 && i < otherWords.length; i++) {
+      reverseOptions.add(otherWords[i].lemma);
+    }
+    reverseOptions.shuffle();
+    
+    return {
+      'word': word,
+      'sense': sense,
+      'options': options,
+      'reverseOptions': reverseOptions,
+    };
+  }
+}
+
+class _OptionButton extends StatelessWidget {
+  final String label;
+  final int index;
+  final bool isSelected;
+  final bool isCorrect;
+  final bool isWrong;
+  final bool enabled;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _OptionButton({
+    required this.label,
+    required this.index,
+    required this.isSelected,
+    required this.isCorrect,
+    required this.isWrong,
+    required this.enabled,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final letters = ['A', 'B', 'C', 'D'];
+
+    Color bg;
+    Color border;
+    Color fg;
+
+    if (isCorrect) {
+      bg = isDark ? AppTheme.gray700 : AppTheme.gray200;
+      border = Colors.green;
+      fg = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
+    } else if (isWrong) {
+      bg = isDark ? AppTheme.gray850 : AppTheme.gray50;
+      border = Colors.red;
+      fg = isDark ? AppTheme.gray500 : AppTheme.gray400;
+    } else if (isSelected) {
+      bg = isDark ? AppTheme.gray800 : AppTheme.gray100;
+      border = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
+      fg = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
+    } else {
+      bg = isDark ? AppTheme.gray900 : AppTheme.pureWhite;
+      border = isDark ? AppTheme.gray800 : AppTheme.gray200;
+      fg = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
+    }
+
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: border, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.gray800 : AppTheme.gray100,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Center(
+                child: Text(
+                  index < letters.length ? letters[index] : '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: AppTheme.weightBold,
+                    color: fg,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: fg,
+                  fontWeight: isCorrect ? AppTheme.weightSemiBold : AppTheme.weightRegular,
+                ),
+              ),
+            ),
+            if (isCorrect)
+              const Icon(Icons.check_circle, color: Colors.green, size: 20),
+            if (isWrong)
+              const Icon(Icons.cancel, color: Colors.red, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
