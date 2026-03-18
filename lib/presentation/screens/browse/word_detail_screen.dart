@@ -9,7 +9,6 @@ import '../../widgets/common/audio_button.dart';
 import '../../widgets/multi_accent_audio_button.dart';
 import '../../widgets/common/skeleton_loader.dart';
 import '../../widgets/word/word_learning_aids_section.dart';
-import '../../../domain/entities/vocabulary_entity.dart';
 
 const _levelNames = {1: 'A1', 2: 'A2', 3: 'B1', 4: 'B2', 5: 'C1', 6: 'C2'};
 const _examLabels = {
@@ -150,9 +149,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
               word.grammarNotes != null ||
               word.commonMistakes != null) ...[
             WordLearningAidsSection(
-              collocations: word.collocations.map((c) => 
-                Collocation(english: c.english, chinese: c.chinese)
-              ).toList(),
+              collocations: word.collocations,
               usageNotes: word.usageNotes,
               grammarNotes: word.grammarNotes,
               commonMistakes: word.commonMistakes,

@@ -823,8 +823,8 @@ class CollocationModel extends Equatable {
 
   factory CollocationModel.fromJson(Map<String, dynamic> json) {
     return CollocationModel(
-      english: json['english'] as String? ?? '',
-      chinese: json['chinese'] as String? ?? '',
+      english: json['collocation'] as String? ?? json['english'] as String? ?? '',
+      chinese: json['zh'] as String? ?? json['chinese'] as String? ?? '',
     );
   }
 
