@@ -248,7 +248,7 @@ class PatternDetailScreen extends ConsumerWidget {
           ),
         ),
 
-        // Beginner Summary (v6.1.0 新增)
+        // Beginner Summary (v7.0.0 新增)
         if (pattern.beginnerSummary != null) ...[
           Container(
             padding: const EdgeInsets.all(16),

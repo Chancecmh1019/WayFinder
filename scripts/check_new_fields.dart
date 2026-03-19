@@ -78,6 +78,6 @@ void main() async {
   
   if (withCollocations == 0) {
     print('\n⚠️  警告：資料庫中沒有任何單字包含新欄位！');
-    print('請確認 GSAT-English.json.gz 是否為 v6.1.0 版本。');
+    print('請確認 GSAT-English.json.gz 是否為 v7.0.0 版本。');
   }
 }

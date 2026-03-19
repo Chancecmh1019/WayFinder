@@ -3,7 +3,7 @@ import '../../../data/models/vocab_models_enhanced.dart';
 import '../../theme/app_theme.dart';
 
 /// 單字學習輔助資訊區塊
-/// 顯示 v6.1.0 新增的欄位：collocations, usage_notes, grammar_notes, common_mistakes
+/// 顯示 v7.0.0 新增的欄位：collocations, usage_notes, grammar_notes, common_mistakes
 class WordLearningAidsSection extends StatelessWidget {
   final List<CollocationModel> collocations;
   final String? usageNotes;

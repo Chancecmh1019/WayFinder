@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/tts_providers.dart';
 import '../../core/providers/connectivity_providers.dart';
+import '../../presentation/providers/settings_provider.dart';
 
 /// Audio button state enum
 enum AudioButtonState {
@@ -216,22 +217,25 @@ class _AudioButtonState extends ConsumerState<AudioButton> {
     }
 
     try {
+      // Use the active TTS service based on user settings
       final ttsService = ref.read(flutterTtsServiceProvider);
-      final success = await audioController.playTts(ttsService, widget.text);
+      final speechRate = ref.read(settingsProvider).settings.speechRate;
+      
+      // Pass speech rate to TTS service
+      final success = await ttsService.speak(widget.text, speechRate: speechRate);
+      
+      if (!success) {
+        throw Exception('TTS 引擎無法播放');
+      }
+      
+      // Update audio controller
+      await audioController.playTts(ttsService, widget.text);
 
       if (mounted) {
-        if (success) {
-          setState(() {
-            _state = AudioButtonState.playing;
-          });
-          widget.onPlayStart?.call();
-        } else {
-          setState(() {
-            _state = AudioButtonState.error;
-            _errorMessage = 'TTS 引擎無法播放';
-          });
-          widget.onError?.call();
-        }
+        setState(() {
+          _state = AudioButtonState.playing;
+        });
+        widget.onPlayStart?.call();
       }
     } catch (e) {
       if (mounted) {

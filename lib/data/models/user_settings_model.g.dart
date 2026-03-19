@@ -25,13 +25,14 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       targetLevel: fields[8] as int,
       learningStyle: fields[9] as String,
       includePhrasesInStudy: fields[10] as bool,
+      speechRate: fields[11] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserSettingsModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.dailyGoal)
       ..writeByte(4)
@@ -47,7 +48,9 @@ class UserSettingsModelAdapter extends TypeAdapter<UserSettingsModel> {
       ..writeByte(9)
       ..write(obj.learningStyle)
       ..writeByte(10)
-      ..write(obj.includePhrasesInStudy);
+      ..write(obj.includePhrasesInStudy)
+      ..writeByte(11)
+      ..write(obj.speechRate);
   }
 
   @override

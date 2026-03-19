@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../../core/utils/logger.dart';
-import 'flutter_tts_service.dart';
 
 /// Global Audio Controller
 /// Ensures only one audio plays at a time across the app
@@ -11,7 +10,7 @@ class GlobalAudioController extends ChangeNotifier {
   
   GlobalAudioController._internal();
 
-  FlutterTtsService? _currentTtsService;
+  dynamic _currentTtsService; // Can be FlutterTtsService or EdgeTtsService
   String? _currentPlayingText;
   bool _isPlaying = false;
 
@@ -23,7 +22,8 @@ class GlobalAudioController extends ChangeNotifier {
 
   /// Play audio using TTS
   /// Automatically stops any currently playing audio
-  Future<bool> playTts(FlutterTtsService ttsService, String text) async {
+  /// Supports both FlutterTtsService and EdgeTtsService
+  Future<bool> playTts(dynamic ttsService, String text) async {
     // Stop any currently playing audio first
     await stopAll();
 
@@ -63,10 +63,10 @@ class GlobalAudioController extends ChangeNotifier {
 
   /// Schedule automatic completion after estimated duration
   void _scheduleAutoCompletion(String text) {
-    // Estimate duration: ~200 words per minute at 0.85 speech rate
-    // That's ~3.3 words per second, or ~0.3 seconds per word
+    // Estimate duration: ~120 words per minute at 0.45 speech rate (slower for learning)
+    // That's ~2 words per second, or ~0.5 seconds per word
     final wordCount = text.split(' ').length;
-    final estimatedSeconds = (wordCount * 0.3).ceil() + 1; // Add 1 second buffer
+    final estimatedSeconds = (wordCount * 0.5).ceil() + 2; // Add 2 second buffer
     
     Future.delayed(Duration(seconds: estimatedSeconds), () {
       // Only mark as completed if this text is still the current one
@@ -80,8 +80,12 @@ class GlobalAudioController extends ChangeNotifier {
   /// Stop all currently playing audio
   Future<void> stopAll() async {
     if (_currentTtsService != null) {
-      await _currentTtsService!.stop();
-      AppLogger.debug('Stopped TTS: $_currentPlayingText');
+      try {
+        await _currentTtsService!.stop();
+        AppLogger.debug('Stopped TTS: $_currentPlayingText');
+      } catch (e) {
+        AppLogger.error('Error stopping TTS: $e');
+      }
     }
 
     _currentTtsService = null;
@@ -93,9 +97,19 @@ class GlobalAudioController extends ChangeNotifier {
   /// Pause current audio
   Future<void> pause() async {
     if (_currentTtsService != null) {
-      await _currentTtsService!.pause();
-      _isPlaying = false;
-      notifyListeners();
+      try {
+        // Check if service has pause method (FlutterTtsService does, EdgeTtsService doesn't)
+        if (_currentTtsService.runtimeType.toString().contains('FlutterTts')) {
+          await _currentTtsService!.pause();
+        } else {
+          // For services without pause, just stop
+          await _currentTtsService!.stop();
+        }
+        _isPlaying = false;
+        notifyListeners();
+      } catch (e) {
+        AppLogger.error('Error pausing TTS: $e');
+      }
     }
   }
 

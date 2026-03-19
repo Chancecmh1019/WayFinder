@@ -122,6 +122,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: null,
                 ),
                 _buildDivider(isDark),
+                _buildSettingItem(
+                  context: context,
+                  title: '語音播放速度',
+                  subtitle: '${(settings.speechRate * 100).toInt()}%',
+                  trailing: null,
+                  onTap: () => _showSpeechRatePicker(context, ref, settings.speechRate),
+                ),
+                _buildDivider(isDark),
 
                 // Data Management section
                 _buildSectionHeader(context, '資料管理'),
@@ -474,6 +482,97 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               );
             }),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showSpeechRatePicker(BuildContext context, WidgetRef ref, double currentRate) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    double selectedRate = currentRate;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLarge)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          padding: const EdgeInsets.all(AppTheme.space24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '語音播放速度',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppTheme.space8),
+              Text(
+                '調整語音播放的速度（較慢的速度適合學習）',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? AppTheme.gray400 : AppTheme.gray600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppTheme.space24),
+              Row(
+                children: [
+                  Text(
+                    '慢',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: isDark ? AppTheme.gray400 : AppTheme.gray600,
+                    ),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: selectedRate,
+                      min: 0.3,
+                      max: 1.0,
+                      divisions: 14,
+                      label: '${(selectedRate * 100).toInt()}%',
+                      activeColor: isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedRate = value;
+                        });
+                      },
+                    ),
+                  ),
+                  Text(
+                    '快',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: isDark ? AppTheme.gray400 : AppTheme.gray600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.space8),
+              Text(
+                '目前速度：${(selectedRate * 100).toInt()}%',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: AppTheme.space24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    ref.read(settingsProvider.notifier).updateSpeechRate(selectedRate);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                    foregroundColor: isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
+                    padding: const EdgeInsets.symmetric(vertical: AppTheme.space16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    ),
+                  ),
+                  child: const Text('確認'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

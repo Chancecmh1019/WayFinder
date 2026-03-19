@@ -15,12 +15,12 @@ class FlutterTtsService {
       : _flutterTts = flutterTts ?? FlutterTts();
 
   /// Initialize TTS with default settings
-  Future<void> initialize() async {
+  Future<void> initialize({double speechRate = 0.45}) async {
     if (_isInitialized) return;
 
     try {
       await _flutterTts.setLanguage("en-US");
-      await _flutterTts.setSpeechRate(0.85); // Natural pace for learning
+      await _flutterTts.setSpeechRate(speechRate); // Use provided speech rate
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
 
@@ -56,9 +56,9 @@ class FlutterTtsService {
   }
 
   /// Speak the given text
-  Future<bool> speak(String text) async {
+  Future<bool> speak(String text, {double? speechRate}) async {
     if (!_isInitialized) {
-      await initialize();
+      await initialize(speechRate: speechRate ?? 0.45);
     }
 
     try {
@@ -68,7 +68,7 @@ class FlutterTtsService {
 
       // Ensure speech rate is set before every speak call
       // This prevents system or other factors from changing the rate
-      await _flutterTts.setSpeechRate(0.85);
+      await _flutterTts.setSpeechRate(speechRate ?? 0.45); // Use provided or default rate
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
 

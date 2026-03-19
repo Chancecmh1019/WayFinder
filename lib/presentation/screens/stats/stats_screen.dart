@@ -71,7 +71,7 @@ class StatsScreen extends ConsumerWidget {
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: totalAsync.when(
-                    data: (w) => _InfoCard('${w.length}', '詞庫規模', '7,177 單字 + 688 片語', isDark: isDark, card: card, fg: fg),
+                    data: (w) => _InfoCard('${w.length}', '詞庫規模', '7,177 單字 + 2,866 片語', isDark: isDark, card: card, fg: fg),
                     loading: () => _InfoCard('—', '詞庫規模', '', isDark: isDark, card: card, fg: fg),
                     error: (_, __) => _InfoCard('—', '詞庫規模', '', isDark: isDark, card: card, fg: fg),
                   )),

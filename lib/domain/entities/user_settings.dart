@@ -64,6 +64,7 @@ class UserSettings {
   final PronunciationType preferredPronunciation; // 偏好發音
   final bool autoPlayAudio; // 自動播放音訊
   final TtsEngineType ttsEngine; // TTS 引擎偏好
+  final double speechRate; // 語音播放速度 (0.1 - 1.0, 預設 0.45)
 
   // 系統狀態
   final bool hasCompletedOnboarding; // 是否完成初始設定
@@ -77,6 +78,7 @@ class UserSettings {
     required this.preferredPronunciation,
     required this.autoPlayAudio,
     required this.ttsEngine,
+    this.speechRate = 0.45,
     this.hasCompletedOnboarding = false,
   });
 
@@ -91,6 +93,7 @@ class UserSettings {
       preferredPronunciation: PronunciationType.us,
       autoPlayAudio: false,
       ttsEngine: TtsEngineType.flutterTts,
+      speechRate: 0.45,
       hasCompletedOnboarding: false,
     );
   }
@@ -104,6 +107,7 @@ class UserSettings {
     PronunciationType? preferredPronunciation,
     bool? autoPlayAudio,
     TtsEngineType? ttsEngine,
+    double? speechRate,
     bool? hasCompletedOnboarding,
   }) {
     return UserSettings(
@@ -115,6 +119,7 @@ class UserSettings {
       preferredPronunciation: preferredPronunciation ?? this.preferredPronunciation,
       autoPlayAudio: autoPlayAudio ?? this.autoPlayAudio,
       ttsEngine: ttsEngine ?? this.ttsEngine,
+      speechRate: speechRate ?? this.speechRate,
       hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
     );
   }
@@ -132,6 +137,7 @@ class UserSettings {
           preferredPronunciation == other.preferredPronunciation &&
           autoPlayAudio == other.autoPlayAudio &&
           ttsEngine == other.ttsEngine &&
+          speechRate == other.speechRate &&
           hasCompletedOnboarding == other.hasCompletedOnboarding;
 
   @override
@@ -144,6 +150,7 @@ class UserSettings {
         preferredPronunciation,
         autoPlayAudio,
         ttsEngine,
+        speechRate,
         hasCompletedOnboarding,
       );
 }

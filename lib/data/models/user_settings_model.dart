@@ -30,6 +30,9 @@ class UserSettingsModel extends HiveObject {
   @HiveField(10)
   final bool includePhrasesInStudy;
 
+  @HiveField(11)
+  final double speechRate;
+
   UserSettingsModel({
     required this.dailyGoal,
     required this.preferredPronunciation,
@@ -39,6 +42,7 @@ class UserSettingsModel extends HiveObject {
     required this.targetLevel,
     required this.learningStyle,
     required this.includePhrasesInStudy,
+    this.speechRate = 0.45,
   });
 
   /// Convert to domain entity
@@ -59,6 +63,7 @@ class UserSettingsModel extends HiveObject {
         orElse: () => LearningStyle.balanced,
       ),
       includePhrasesInStudy: includePhrasesInStudy,
+      speechRate: speechRate,
     );
   }
 
@@ -76,6 +81,7 @@ class UserSettingsModel extends HiveObject {
       targetLevel: settings.targetLevel,
       learningStyle: settings.learningStyle.name,
       includePhrasesInStudy: settings.includePhrasesInStudy,
+      speechRate: settings.speechRate,
     );
   }
 
@@ -90,6 +96,7 @@ class UserSettingsModel extends HiveObject {
       targetLevel: map['targetLevel'] as int? ?? 4,
       learningStyle: map['learningStyle'] as String? ?? 'balanced',
       includePhrasesInStudy: map['includePhrasesInStudy'] as bool? ?? true,
+      speechRate: (map['speechRate'] as num?)?.toDouble() ?? 0.45,
     );
   }
 
@@ -104,6 +111,7 @@ class UserSettingsModel extends HiveObject {
       'targetLevel': targetLevel,
       'learningStyle': learningStyle,
       'includePhrasesInStudy': includePhrasesInStudy,
+      'speechRate': speechRate,
     };
   }
 
@@ -118,6 +126,7 @@ class UserSettingsModel extends HiveObject {
       targetLevel: 4,
       learningStyle: 'balanced',
       includePhrasesInStudy: true,
+      speechRate: 0.45,
     );
   }
 }

@@ -77,16 +77,17 @@ class _MultiAccentAudioButtonState extends ConsumerState<MultiAccentAudioButton>
     try {
       final ttsEngine = ref.read(ttsEngineTypeProvider);
       final ttsService = ref.read(activeTtsServiceProvider);
+      final speechRate = ref.read(settingsProvider).settings.speechRate;
 
       bool success = false;
 
       if (ttsEngine == TtsEngineType.edgeTts && ttsService is EdgeTtsService) {
-        success = await ttsService.speak(widget.text, pronunciationType: accent);
+        success = await ttsService.speak(widget.text, pronunciationType: accent, speechRate: speechRate);
       } else if (ttsService is FlutterTtsService) {
         // Flutter TTS doesn't support multiple accents as well, but we can try
         final language = accent == PronunciationType.us ? 'en-US' : 'en-GB';
         await ttsService.setLanguage(language);
-        success = await ttsService.speak(widget.text);
+        success = await ttsService.speak(widget.text, speechRate: speechRate);
       }
 
       if (!success && mounted) {

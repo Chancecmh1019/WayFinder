@@ -201,6 +201,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     }
   }
 
+  Future<void> updateSpeechRate(double rate) async {
+    if (rate < 0.1 || rate > 1.0) return;
+    try {
+      state = state.copyWith(isLoading: true);
+      final newSettings = state.settings.copyWith(speechRate: rate);
+      await _saveSettings(newSettings);
+      state = state.copyWith(settings: newSettings, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: '更新語速設定失敗');
+    }
+  }
+
 }
 
 /// Provider for settings
@@ -226,4 +238,9 @@ final autoPlayAudioProvider = Provider<bool>((ref) {
 /// Provider for TTS engine type
 final ttsEngineTypeProvider = Provider<TtsEngineType>((ref) {
   return ref.watch(settingsProvider.select((state) => state.settings.ttsEngine));
+});
+
+/// Provider for speech rate
+final speechRateProvider = Provider<double>((ref) {
+  return ref.watch(settingsProvider.select((state) => state.settings.speechRate));
 });

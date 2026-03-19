@@ -143,7 +143,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
             _divider(),
           ],
 
-          // ── Learning Aids (v6.1.0 新增) ──────────────────
+          // ── Learning Aids (v7.0.0 新增) ──────────────────
           if (word.collocations.isNotEmpty ||
               word.usageNotes != null ||
               word.grammarNotes != null ||

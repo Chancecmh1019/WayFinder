@@ -13,6 +13,7 @@ class EdgeTtsService {
   final AudioPlayer _audioPlayer;
   final Dio _dio;
   String _currentVoice = 'en-US-GuyNeural';
+  double _speechRate = 0.45; // Default speech rate
   bool _isInitialized = false;
   VoidCallback? onComplete;
 
@@ -21,10 +22,12 @@ class EdgeTtsService {
         _dio = dio ?? Dio();
 
   /// Initialize the service
-  Future<void> initialize() async {
+  Future<void> initialize({double speechRate = 0.45}) async {
     if (_isInitialized) return;
 
     try {
+      _speechRate = speechRate; // Store speech rate
+      
       // Setup audio player completion handler
       _audioPlayer.onPlayerComplete.listen((_) {
         AppLogger.debug('Edge TTS audio playback completed');
@@ -32,7 +35,7 @@ class EdgeTtsService {
       });
 
       _isInitialized = true;
-      AppLogger.info('Edge TTS service initialized');
+      AppLogger.info('Edge TTS service initialized with speech rate: $speechRate');
     } catch (e, stackTrace) {
       AppLogger.error('Failed to initialize Edge TTS service', e, stackTrace);
       rethrow;
@@ -46,10 +49,15 @@ class EdgeTtsService {
   }
 
   /// Speak text using Edge TTS
-  Future<bool> speak(String text, {PronunciationType? pronunciationType}) async {
+  Future<bool> speak(String text, {PronunciationType? pronunciationType, double? speechRate}) async {
     try {
       if (!_isInitialized) {
-        await initialize();
+        await initialize(speechRate: speechRate ?? 0.45);
+      }
+
+      // Update speech rate if provided
+      if (speechRate != null) {
+        _speechRate = speechRate;
       }
 
       // Set voice if pronunciation type provided
@@ -57,7 +65,7 @@ class EdgeTtsService {
         await setVoice(pronunciationType);
       }
 
-      AppLogger.info('Edge TTS speaking: $text with voice: $_currentVoice');
+      AppLogger.info('Edge TTS speaking: $text with voice: $_currentVoice at rate: $_speechRate');
 
       // Generate SSML
       final ssml = _generateSsml(text, _currentVoice);
@@ -94,10 +102,14 @@ class EdgeTtsService {
 
   /// Generate SSML for Edge TTS
   String _generateSsml(String text, String voice) {
+    // Convert speech rate (0.1-1.0) to percentage (-90% to 0%)
+    // 0.45 -> -55%, 0.5 -> -50%, 1.0 -> 0%
+    final ratePercent = ((_speechRate - 1.0) * 100).round();
+    
     return '''
 <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>
   <voice name='$voice'>
-    <prosody rate='0%' pitch='0%'>
+    <prosody rate='$ratePercent%' pitch='0%'>
       $text
     </prosody>
   </voice>
@@ -108,7 +120,7 @@ class EdgeTtsService {
   /// Synthesize speech using Edge TTS API
   Future<List<int>?> _synthesizeSpeech(String ssml) async {
     try {
-      // Edge TTS endpoint
+      // Edge TTS endpoint - using the correct WebSocket-based API endpoint
       const endpoint = 'https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
       
       final response = await _dio.post(
@@ -118,16 +130,31 @@ class EdgeTtsService {
           headers: {
             'Content-Type': 'application/ssml+xml',
             'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
           },
           responseType: ResponseType.bytes,
+          validateStatus: (status) => status != null && status < 500,
         ),
       );
 
-      return response.data as List<int>;
+      if (response.statusCode != 200) {
+        AppLogger.error('Edge TTS API returned status ${response.statusCode}');
+        throw Exception('Edge TTS API 回應錯誤: HTTP ${response.statusCode}');
+      }
+
+      final data = response.data;
+      if (data == null || (data is List && data.isEmpty)) {
+        throw Exception('Edge TTS API 回應為空');
+      }
+
+      return data as List<int>;
     } catch (e, stackTrace) {
-      AppLogger.error('Error synthesizing speech', e, stackTrace);
-      return null;
+      AppLogger.error('Error synthesizing speech with Edge TTS', e, stackTrace);
+      // Provide more user-friendly error message
+      if (e.toString().contains('SocketException') || e.toString().contains('Connection')) {
+        throw Exception('無法連接到 Edge TTS 服務，請檢查網路連線');
+      }
+      rethrow;
     }
   }
 
