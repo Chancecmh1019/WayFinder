@@ -248,6 +248,92 @@ class ConfusionNoteModelAdapter extends TypeAdapter<ConfusionNoteModel> {
           typeId == other.typeId;
 }
 
+class RootElementModelAdapter extends TypeAdapter<RootElementModel> {
+  @override
+  final int typeId = 57;
+
+  @override
+  RootElementModel read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return RootElementModel(
+      element: fields[0] as String,
+      zhMeaning: fields[1] as String,
+      enMeaning: fields[2] as String,
+      language: fields[3] as String,
+      familyExamples: (fields[4] as List).cast<String>(),
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, RootElementModel obj) {
+    writer
+      ..writeByte(5)
+      ..writeByte(0)
+      ..write(obj.element)
+      ..writeByte(1)
+      ..write(obj.zhMeaning)
+      ..writeByte(2)
+      ..write(obj.enMeaning)
+      ..writeByte(3)
+      ..write(obj.language)
+      ..writeByte(4)
+      ..write(obj.familyExamples);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RootElementModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class RootAnalysisModelAdapter extends TypeAdapter<RootAnalysisModel> {
+  @override
+  final int typeId = 58;
+
+  @override
+  RootAnalysisModel read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return RootAnalysisModel(
+      prefixes: (fields[0] as List).cast<RootElementModel>(),
+      roots: (fields[1] as List).cast<RootElementModel>(),
+      suffixes: (fields[2] as List).cast<RootElementModel>(),
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, RootAnalysisModel obj) {
+    writer
+      ..writeByte(3)
+      ..writeByte(0)
+      ..write(obj.prefixes)
+      ..writeByte(1)
+      ..write(obj.roots)
+      ..writeByte(2)
+      ..write(obj.suffixes);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RootAnalysisModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class RootInfoModelAdapter extends TypeAdapter<RootInfoModel> {
   @override
   final int typeId = 55;
@@ -261,17 +347,20 @@ class RootInfoModelAdapter extends TypeAdapter<RootInfoModel> {
     return RootInfoModel(
       rootBreakdown: fields[0] as String,
       memoryStrategy: fields[1] as String,
+      analysis: fields[2] as RootAnalysisModel?,
     );
   }
 
   @override
   void write(BinaryWriter writer, RootInfoModel obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.rootBreakdown)
       ..writeByte(1)
-      ..write(obj.memoryStrategy);
+      ..write(obj.memoryStrategy)
+      ..writeByte(2)
+      ..write(obj.analysis);
   }
 
   @override

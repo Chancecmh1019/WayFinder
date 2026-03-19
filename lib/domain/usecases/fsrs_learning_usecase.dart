@@ -220,8 +220,13 @@ class FSRSLearningUseCase {
               card.isNew)
           .toList();
       
-      // Sort by priority (could be based on word frequency, importance, etc.)
-      // For now, just take the first N cards
+      // 【重要】按照 createdAt 排序，確保每天學習最早解鎖的單字
+      // 這樣可以確保：
+      // - 第1天：學習最早的 N 個單字
+      // - 第2天：學習接下來的 N 個單字（因為第1天的已經不是 isNew 狀態了）
+      // - 以此類推
+      allNewCards.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      
       newCards = allNewCards
           .take(remainingNewCards)
           .toList();

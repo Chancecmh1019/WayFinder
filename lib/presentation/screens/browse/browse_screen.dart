@@ -6,7 +6,7 @@ import '../../../core/providers/app_providers.dart';
 import '../../widgets/common/skeleton_loader.dart';
 import 'word_detail_screen.dart';
 import '../folders/word_folders_screen.dart';
-import '../root_learning_screen.dart';
+import '../root_dictionary_screen.dart';
 import '../../../core/providers/word_folder_providers.dart';
 import '../../../data/models/word_folder_model.dart';
 import 'phrase_detail_screen.dart';
@@ -62,10 +62,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
                 const Spacer(),
                 if (filter.tab == BrowseTab.words) ...[
                   IconButton(
-                    icon: const Icon(Icons.account_tree_outlined),
-                    tooltip: '字根記憶',
+                    icon: const Icon(Icons.book_outlined),
+                    tooltip: '字根字首字典',
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => const RootLearningScreen())),
+                        builder: (_) => const RootDictionaryScreen())),
                   ),
                   IconButton(
                     icon: Icon(Icons.filter_list_rounded,

@@ -128,7 +128,7 @@ class _ContextualListeningScreenState extends ConsumerState<ContextualListeningS
                   shape: BoxShape.circle,
                   boxShadow: isDark ? null : [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
                     ),
@@ -255,11 +255,11 @@ class _ContextualListeningScreenState extends ConsumerState<ContextualListeningS
       if (_showResult) {
         if (isCorrect) {
           borderColor = Colors.green;
-          bgColor = Colors.green.withOpacity(0.1);
+          bgColor = Colors.green.withValues(alpha: 0.1);
           icon = Icons.check_circle;
         } else if (isSelected) {
           borderColor = Colors.red;
-          bgColor = Colors.red.withOpacity(0.1);
+          bgColor = Colors.red.withValues(alpha: 0.1);
           icon = Icons.cancel;
         } else {
           borderColor = isDark ? AppTheme.gray800 : AppTheme.gray200;
@@ -270,7 +270,7 @@ class _ContextualListeningScreenState extends ConsumerState<ContextualListeningS
             ? (isDark ? AppTheme.pureWhite : AppTheme.pureBlack)
             : (isDark ? AppTheme.gray800 : AppTheme.gray200);
         bgColor = isSelected
-            ? (isDark ? AppTheme.pureWhite.withOpacity(0.1) : AppTheme.pureBlack.withOpacity(0.05))
+            ? (isDark ? AppTheme.pureWhite.withValues(alpha: 0.1) : AppTheme.pureBlack.withValues(alpha: 0.05))
             : card;
       }
       

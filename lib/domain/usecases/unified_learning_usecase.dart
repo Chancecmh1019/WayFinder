@@ -115,10 +115,12 @@ class UnifiedLearningUseCase {
             card.userId == userId &&
             card.isUnlocked &&
             card.isNew)
-        .take(limit)
         .toList();
     
-    return newCards;
+    // 【重要】按照 createdAt 排序，確保每天學習最早解鎖的單字
+    newCards.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    
+    return newCards.take(limit).toList();
   }
 
   // ═══════════════════════════════════════════════════════════

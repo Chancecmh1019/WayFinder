@@ -7,7 +7,7 @@ import '../providers/vocabulary_browser_provider.dart';
 import '../widgets/skeleton_loader.dart';
 import 'browse/word_detail_screen.dart';
 import '../widgets/advanced_filter_sheet.dart';
-import 'root_explorer_screen.dart';
+import 'root_dictionary_screen.dart';
 
 /// Helper function to get CEFR level name
 String getLevelName(int level) {
@@ -173,12 +173,12 @@ class _VocabularyBrowserScreenState
           ),
           // Root Dictionary Button - 更顯眼的位置
           IconButton(
-               icon: const Icon(Icons.account_tree_rounded),
+               icon: const Icon(Icons.book_outlined),
                color: isDark ? AppTheme.gray500 : AppTheme.gray600,
-               tooltip: '字根字典',
+               tooltip: '字根字首字典',
                onPressed: () {
                  Navigator.of(context).push(
-                   MaterialPageRoute(builder: (_) => const RootExplorerScreen())
+                   MaterialPageRoute(builder: (_) => const RootDictionaryScreen())
                  );
                },
           ),
@@ -394,16 +394,4 @@ class _VocabularyBrowserScreenState
       },
     );
   }
-  String getLevelName(int level) {
-    switch (level) {
-      case 1: return 'A1';
-      case 2: return 'A2';
-      case 3: return 'B1';
-      case 4: return 'B2';
-      case 5: return 'C1';
-      case 6: return 'C2';
-      default: return 'Unknown';
-    }
-  }
-
 }

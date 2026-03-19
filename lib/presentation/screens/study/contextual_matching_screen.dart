@@ -17,7 +17,7 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
   List<VocabularyEntity> _words = [];
   List<_MatchItem> _items = [];
   int? _selectedIndex;
-  Set<int> _matchedIndices = {};
+  final Set<int> _matchedIndices = {};
   int _matchedCount = 0;
 
   @override
@@ -120,45 +120,38 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
   Widget _buildContent(BuildContext context, bool isDark, Color card, Color fg) {
     return Column(
       children: [
-        // 說明卡片
+        // 說明卡片 - 更緊湊的設計
         Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: card,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             border: Border.all(color: isDark ? AppTheme.gray800 : AppTheme.gray200),
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.gray800 : AppTheme.gray100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.touch_app, size: 20, color: isDark ? AppTheme.gray300 : AppTheme.gray600),
-              ),
-              const SizedBox(width: 12),
+              Icon(Icons.touch_app, size: 16, color: isDark ? AppTheme.gray400 : AppTheme.gray600),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   '點擊兩個相關的卡片進行配對',
-                  style: TextStyle(fontSize: 14, color: AppTheme.gray500),
+                  style: TextStyle(fontSize: 13, color: AppTheme.gray500),
                 ),
               ),
             ],
           ),
         ),
         
-        // 配對卡片網格
+        // 配對卡片網格 - 更緊湊的間距
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.5, // 增加寬高比，讓卡片更扁平
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              childAspectRatio: 1.3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
             itemCount: _items.length,
             itemBuilder: (context, index) {
@@ -166,30 +159,6 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
             },
           ),
         ),
-        
-        // 完成按鈕
-        if (_matchedCount == _words.length)
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: card,
-              boxShadow: isDark ? null : AppTheme.cardShadow,
-            ),
-            child: SafeArea(
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
-                  foregroundColor: isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                  ),
-                ),
-                child: const Text('完成', style: TextStyle(fontSize: 16, fontWeight: AppTheme.weightSemiBold)),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -204,10 +173,10 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
     
     if (isMatched) {
       borderColor = Colors.green;
-      bgColor = Colors.green.withOpacity(0.1);
+      bgColor = Colors.green.withValues(alpha: 0.1);
     } else if (isSelected) {
       borderColor = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
-      bgColor = isDark ? AppTheme.pureWhite.withOpacity(0.1) : AppTheme.pureBlack.withOpacity(0.05);
+      bgColor = isDark ? AppTheme.pureWhite.withValues(alpha: 0.1) : AppTheme.pureBlack.withValues(alpha: 0.05);
     } else {
       borderColor = isDark ? AppTheme.gray800 : AppTheme.gray200;
       bgColor = card;
@@ -216,7 +185,7 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
     return GestureDetector(
       onTap: isMatched ? null : () => _onCardTap(index),
       child: Container(
-        padding: const EdgeInsets.all(12), // 減少內距
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -226,14 +195,14 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (isMatched)
-              Icon(Icons.check_circle, color: Colors.green, size: 18), // 稍微縮小圖標
-            if (isMatched) const SizedBox(height: 6),
+              Icon(Icons.check_circle, color: Colors.green, size: 16),
+            if (isMatched) const SizedBox(height: 4),
             Expanded(
               child: Center(
                 child: Text(
                   item.isWord ? item.word : item.definition,
                   style: TextStyle(
-                    fontSize: item.isWord ? 15 : 12, // 稍微縮小字體
+                    fontSize: item.isWord ? 14 : 11,
                     color: isMatched ? Colors.green : fg,
                     fontWeight: item.isWord ? AppTheme.weightSemiBold : AppTheme.weightRegular,
                   ),

@@ -1,8 +1,8 @@
 name: wayfinder
-description: "WayFinder - 基於學習科學原理的 Android 單字學習應用程式"
+description: "WayFinder - GSAT English Vocabulary APP"
 publish_to: 'none'
 
-version: 0.0.1+1
+version: 0.0.3+3
 
 environment:
   sdk: ^3.10.7
@@ -76,34 +76,19 @@ flutter:
     - assets/GSAT-English.json.gz
   
   fonts:
-    # Noto Serif TC - 中文襯線字體（文青風格）
+    # Noto Serif TC - 中文襯線字體（優化版：只保留常用字重）
     - family: NotoSerifTC
       fonts:
-        - asset: assets/fonts/noto_serif_tc/NotoSerifTC-ExtraLight.ttf
-          weight: 200
-        - asset: assets/fonts/noto_serif_tc/NotoSerifTC-Light.ttf
-          weight: 300
         - asset: assets/fonts/noto_serif_tc/NotoSerifTC-Regular.ttf
           weight: 400
         - asset: assets/fonts/noto_serif_tc/NotoSerifTC-Medium.ttf
           weight: 500
         - asset: assets/fonts/noto_serif_tc/NotoSerifTC-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/noto_serif_tc/NotoSerifTC-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/noto_serif_tc/NotoSerifTC-ExtraBold.ttf
-          weight: 800
-        - asset: assets/fonts/noto_serif_tc/NotoSerifTC-Black.ttf
-          weight: 900
     
-    # Cormorant Garamond - 英文襯線字體（優雅風格）
+    # Cormorant Garamond - 英文襯線字體（優化版：只保留必要字重）
     - family: CormorantGaramond
       fonts:
-        - asset: assets/fonts/cormorant_garamond/CormorantGaramond-Light.ttf
-          weight: 300
-        - asset: assets/fonts/cormorant_garamond/CormorantGaramond-LightItalic.ttf
-          weight: 300
-          style: italic
         - asset: assets/fonts/cormorant_garamond/CormorantGaramond-Regular.ttf
           weight: 400
         - asset: assets/fonts/cormorant_garamond/CormorantGaramond-Italic.ttf
@@ -111,16 +96,5 @@ flutter:
           style: italic
         - asset: assets/fonts/cormorant_garamond/CormorantGaramond-Medium.ttf
           weight: 500
-        - asset: assets/fonts/cormorant_garamond/CormorantGaramond-MediumItalic.ttf
-          weight: 500
-          style: italic
         - asset: assets/fonts/cormorant_garamond/CormorantGaramond-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/cormorant_garamond/CormorantGaramond-SemiBoldItalic.ttf
-          weight: 600
-          style: italic
-        - asset: assets/fonts/cormorant_garamond/CormorantGaramond-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/cormorant_garamond/CormorantGaramond-BoldItalic.ttf
-          weight: 700
-          style: italic

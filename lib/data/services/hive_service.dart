@@ -7,6 +7,8 @@ import '../models/learning_progress_model.dart';
 import '../models/word_folder_model.dart';
 import '../models/user_model.dart';
 import '../models/user_settings_model.dart';
+import 'vocabulary_initialization_service.dart';
+import 'package:logger/logger.dart';
 
 class HiveService {
   static const String vocabularyBoxName = 'vocabulary';
@@ -19,6 +21,7 @@ class HiveService {
   static const String userBoxName = 'user';
 
   static bool _initialized = false;
+  static final Logger _logger = Logger();
 
   static Future<void> initialize() async {
     if (_initialized) return;
@@ -57,6 +60,33 @@ class HiveService {
     Hive.registerAdapter(LearningProgressModelAdapter()); // typeId: 1
 
     _initialized = true;
+  }
+  
+  /// 初始化單字卡片（在 app 啟動後執行）
+  static Future<void> initializeVocabularyCards(String userId) async {
+    try {
+      _logger.i('[HiveService] 檢查是否需要初始化單字卡片...');
+      
+      final vocabularyBox = await openVocabularyBox();
+      final cardsBox = await openFsrsCardsBox();
+      
+      final initService = VocabularyInitializationService();
+      
+      // 檢查是否需要初始化
+      if (initService.needsInitialization(userId: userId, cardsBox: cardsBox)) {
+        _logger.i('[HiveService] 開始初始化單字卡片...');
+        final createdCount = await initService.initializeVocabularyCards(
+          userId: userId,
+          vocabularyBox: vocabularyBox,
+          cardsBox: cardsBox,
+        );
+        _logger.i('[HiveService] 單字卡片初始化完成，創建了 $createdCount 個卡片');
+      } else {
+        _logger.i('[HiveService] 單字卡片已初始化，跳過');
+      }
+    } catch (e) {
+      _logger.e('[HiveService] 初始化單字卡片時發生錯誤: $e');
+    }
   }
 
   static Future<LazyBox<VocabEntryModel>> openVocabularyBox() async {

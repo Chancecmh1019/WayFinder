@@ -437,67 +437,12 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionLabel('易混淆詞'),
-        ...notes.map((cn) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.gray950 : AppTheme.gray950,
-                borderRadius:
-                    BorderRadius.circular(AppTheme.radiusMedium),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(lemma,
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamilyEnglish,
-                              fontSize: 18,
-                              fontWeight: AppTheme.weightSemiBold,
-                              color: AppTheme.pureWhite)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('vs',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: AppTheme.weightBold,
-                                color: AppTheme.gray600)),
-                      ),
-                      Text(cn.confusedWith as String,
-                          style: TextStyle(
-                              fontFamily: AppTheme.fontFamilyEnglish,
-                              fontSize: 18,
-                              fontWeight: AppTheme.weightSemiBold,
-                              color: AppTheme.gray500)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(cn.distinction as String,
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.gray300,
-                          height: 1.6)),
-                  const SizedBox(height: 8),
-                  Container(
-                      height: 0.5,
-                      color: AppTheme.gray800),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('記憶技巧：',
-                          style: TextStyle(
-                              fontSize: 12, color: AppTheme.gray600)),
-                      Expanded(
-                        child: Text(cn.memoryTip ?? "",
-                            style: TextStyle(
-                                fontSize: 12, color: AppTheme.gray400)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+        ...notes.map((cn) => _ConfusionCard(
+              currentLemma: lemma,
+              confusedWith: cn.confusedWith as String,
+              distinction: cn.distinction as String,
+              memoryTip: cn.memoryTip as String?,
+              isDark: isDark,
             )),
         const SizedBox(height: 8),
       ],
@@ -1081,31 +1026,123 @@ class _RelatedGroup extends StatelessWidget {
           spacing: 6,
           runSpacing: 6,
           children: words
-              .map<Widget>((w) => Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.gray850 : AppTheme.gray50,
-                      border: Border.all(
-                          color: isDark ? AppTheme.gray800 : AppTheme.gray200),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(w.toString(),
-                        style: TextStyle(
-                            fontFamily: AppTheme.fontFamilyEnglish,
-                            fontSize: 14,
-                            fontStyle: italic
-                                ? FontStyle.italic
-                                : FontStyle.normal,
-                            decoration: strikethrough
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: AppTheme.gray600)),
+              .map<Widget>((w) => _ClickableWordChip(
+                    word: w.toString(),
+                    isDark: isDark,
+                    strikethrough: strikethrough,
+                    italic: italic,
                   ))
               .toList(),
         ),
       ],
     );
+  }
+}
+
+class _ClickableWordChip extends ConsumerWidget {
+  final String word;
+  final bool isDark;
+  final bool strikethrough;
+  final bool italic;
+
+  const _ClickableWordChip({
+    required this.word,
+    required this.isDark,
+    this.strikethrough = false,
+    this.italic = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return InkWell(
+      onTap: () async {
+        // 檢查單字是否存在
+        final wordExists = await _checkWordExists(ref, word);
+        
+        if (wordExists) {
+          // 跳轉到單字詳細頁面
+          if (context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => WordDetailScreen(lemma: word),
+              ),
+            );
+          }
+        } else {
+          // 顯示提示對話框
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                ),
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: isDark ? AppTheme.gray400 : AppTheme.gray600,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('單字不存在'),
+                  ],
+                ),
+                content: Text(
+                  '字典中找不到「$word」這個單字。',
+                  style: TextStyle(
+                    color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('確定'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.gray850 : AppTheme.gray50,
+          border: Border.all(
+              color: isDark ? AppTheme.gray800 : AppTheme.gray200),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(word,
+                style: TextStyle(
+                    fontFamily: AppTheme.fontFamilyEnglish,
+                    fontSize: 14,
+                    fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+                    decoration: strikethrough ? TextDecoration.lineThrough : null,
+                    color: AppTheme.gray600)),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 10,
+              color: isDark ? AppTheme.gray600 : AppTheme.gray400,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _checkWordExists(WidgetRef ref, String lemma) async {
+    try {
+      final wordDetail = await ref.read(wordDetailProvider(lemma).future);
+      return wordDetail != null;
+    } catch (e) {
+      return false;
+    }
   }
 }
 
@@ -1231,5 +1268,159 @@ class _DistSection extends StatelessWidget {
         }),
       ],
     );
+  }
+}
+
+
+class _ConfusionCard extends ConsumerWidget {
+  final String currentLemma;
+  final String confusedWith;
+  final String distinction;
+  final String? memoryTip;
+  final bool isDark;
+
+  const _ConfusionCard({
+    required this.currentLemma,
+    required this.confusedWith,
+    required this.distinction,
+    this.memoryTip,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.gray950 : AppTheme.gray950,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(currentLemma,
+                  style: TextStyle(
+                      fontFamily: AppTheme.fontFamilyEnglish,
+                      fontSize: 18,
+                      fontWeight: AppTheme.weightSemiBold,
+                      color: AppTheme.pureWhite)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text('vs',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: AppTheme.weightBold,
+                        color: AppTheme.gray600)),
+              ),
+              InkWell(
+                onTap: () async {
+                  // 檢查單字是否存在
+                  final wordExists = await _checkWordExists(ref, confusedWith);
+                  
+                  if (wordExists) {
+                    // 跳轉到單字詳細頁面
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => WordDetailScreen(lemma: confusedWith),
+                        ),
+                      );
+                    }
+                  } else {
+                    // 顯示提示對話框
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: isDark ? AppTheme.gray900 : AppTheme.pureWhite,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                          ),
+                          title: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: isDark ? AppTheme.gray400 : AppTheme.gray600,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('單字不存在'),
+                            ],
+                          ),
+                          content: Text(
+                            '字典中找不到「$confusedWith」這個單字。',
+                            style: TextStyle(
+                              color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('確定'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  }
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(confusedWith,
+                          style: TextStyle(
+                              fontFamily: AppTheme.fontFamilyEnglish,
+                              fontSize: 18,
+                              fontWeight: AppTheme.weightSemiBold,
+                              color: AppTheme.gray500)),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 12,
+                        color: AppTheme.gray600,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(distinction,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.gray300,
+                  height: 1.6)),
+          const SizedBox(height: 8),
+          Container(height: 0.5, color: AppTheme.gray800),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('記憶技巧：',
+                  style: TextStyle(fontSize: 12, color: AppTheme.gray600)),
+              Expanded(
+                child: Text(memoryTip ?? "",
+                    style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _checkWordExists(WidgetRef ref, String lemma) async {
+    try {
+      final wordDetail = await ref.read(wordDetailProvider(lemma).future);
+      return wordDetail != null;
+    } catch (e) {
+      return false;
+    }
   }
 }

@@ -6,7 +6,6 @@ import '../theme/app_theme.dart';
 import '../providers/settings_provider.dart';
 import '../providers/unified_learning_provider.dart';
 import '../../domain/entities/user_settings.dart';
-import 'account_screen.dart';
 import '../../core/providers/repository_providers.dart';
 import '../../data/services/export_service.dart';
 
@@ -62,22 +61,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: AppTheme.space8),
-
-                // Account section
-                _buildSectionHeader(context, '帳號'),
-                _buildSettingItem(
-                  context: context,
-                  title: '帳號管理',
-                  subtitle: '查看帳號資訊與設定',
-                  trailing: null,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AccountScreen()),
-                    );
-                  },
-                ),
-                _buildDivider(isDark),
 
                 // Learning section
                 _buildSectionHeader(context, '學習設定'),

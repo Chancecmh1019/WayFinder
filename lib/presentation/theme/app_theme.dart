@@ -139,7 +139,7 @@ class AppTheme {
   static const FontWeight weightRegular = FontWeight.w400;
   static const FontWeight weightMedium = FontWeight.w500;
   static const FontWeight weightSemiBold = FontWeight.w600;
-  static const FontWeight weightBold = FontWeight.w700;
+  static const FontWeight weightBold = FontWeight.w600; // 映射到 SemiBold 以減少字體檔案
   
   // 字號（優化可讀性 +1~2pt）
   static const double fontSize10 = 11.0;  // +1

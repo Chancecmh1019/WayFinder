@@ -59,14 +59,18 @@ class PhraseDetailScreen extends ConsumerWidget {
                   child: Text(s.pos.toLowerCase(), style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
                 )] : <Widget>[]
               ).toList()),
-              if (phrase.frequency != null) ...[
+              if (phrase.frequency != null && 
+                  (phrase.frequency!.totalAppearances > 0 || phrase.frequency!.importanceScore > 0)) ...[
                 const SizedBox(height: 8),
                 Row(children: [
-                  Text('\u51fa\u73fe ${phrase.frequency!.totalAppearances} \u6b21',
-                      style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
-                  const SizedBox(width: 12),
-                  Text('\u91cd\u8981\u6027 ${(phrase.frequency!.importanceScore * 100).round()}%',
-                      style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
+                  if (phrase.frequency!.totalAppearances > 0)
+                    Text('\u51fa\u73fe ${phrase.frequency!.totalAppearances} \u6b21',
+                        style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
+                  if (phrase.frequency!.totalAppearances > 0 && phrase.frequency!.importanceScore > 0)
+                    const SizedBox(width: 12),
+                  if (phrase.frequency!.importanceScore > 0)
+                    Text('\u91cd\u8981\u6027 ${(phrase.frequency!.importanceScore * 100).round()}%',
+                        style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
                 ]),
               ],
               Divider(color: isDark ? AppTheme.gray800 : AppTheme.gray100, height: 32),

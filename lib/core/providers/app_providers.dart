@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/local_vocab_service.dart';
 import '../../data/services/fsrs_service.dart';
 import '../../data/services/tts_service.dart';
+import '../../data/services/hive_service.dart';
 import '../../data/models/vocab_models_enhanced.dart';
 
 // ── Core services ──────────────────────────────────────────
@@ -23,6 +24,11 @@ final appInitProvider = FutureProvider<bool>((ref) async {
       onTimeout: () => throw Exception('FSRS 初始化超時'));
   await vocab.loadDatabase().timeout(const Duration(seconds: 45),
       onTimeout: () => throw Exception('字彙資料庫載入超時'));
+  
+  // 初始化單字卡片（為所有單字的第一個 sense 創建卡片）
+  // 使用固定的 userId（本地版本）
+  await HiveService.initializeVocabularyCards('local_user');
+  
   return true;
 });
 

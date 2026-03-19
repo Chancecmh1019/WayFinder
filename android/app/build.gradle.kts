@@ -48,6 +48,10 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            
+            // 啟用程式碼壓縮和資源縮減
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

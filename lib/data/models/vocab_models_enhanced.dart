@@ -352,7 +352,107 @@ class ConfusionNoteModel extends Equatable {
   List<Object?> get props => [confusedWith, distinction, memoryTip];
 }
 
-/// 詞根資訊
+/// 字根元素（字首、字根、字尾）
+@HiveType(typeId: 57)
+class RootElementModel extends Equatable {
+  @HiveField(0)
+  final String element;
+
+  @HiveField(1)
+  final String zhMeaning;
+
+  @HiveField(2)
+  final String enMeaning;
+
+  @HiveField(3)
+  final String language;
+
+  @HiveField(4)
+  final List<String> familyExamples;
+
+  const RootElementModel({
+    required this.element,
+    required this.zhMeaning,
+    required this.enMeaning,
+    required this.language,
+    required this.familyExamples,
+  });
+
+  factory RootElementModel.fromJson(Map<String, dynamic> json) {
+    return RootElementModel(
+      element: json['element'] as String? ?? '',
+      zhMeaning: json['zh_meaning'] as String? ?? '',
+      enMeaning: json['en_meaning'] as String? ?? '',
+      language: json['language'] as String? ?? '',
+      familyExamples: (json['family_examples'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'element': element,
+      'zh_meaning': zhMeaning,
+      'en_meaning': enMeaning,
+      'language': language,
+      'family_examples': familyExamples,
+    };
+  }
+
+  @override
+  List<Object?> get props => [element, zhMeaning, enMeaning, language, familyExamples];
+}
+
+/// 字根分析結構
+@HiveType(typeId: 58)
+class RootAnalysisModel extends Equatable {
+  @HiveField(0)
+  final List<RootElementModel> prefixes;
+
+  @HiveField(1)
+  final List<RootElementModel> roots;
+
+  @HiveField(2)
+  final List<RootElementModel> suffixes;
+
+  const RootAnalysisModel({
+    required this.prefixes,
+    required this.roots,
+    required this.suffixes,
+  });
+
+  factory RootAnalysisModel.fromJson(Map<String, dynamic> json) {
+    return RootAnalysisModel(
+      prefixes: (json['prefixes'] as List<dynamic>?)
+              ?.map((e) => RootElementModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      roots: (json['roots'] as List<dynamic>?)
+              ?.map((e) => RootElementModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      suffixes: (json['suffixes'] as List<dynamic>?)
+              ?.map((e) => RootElementModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'prefixes': prefixes.map((e) => e.toJson()).toList(),
+      'roots': roots.map((e) => e.toJson()).toList(),
+      'suffixes': suffixes.map((e) => e.toJson()).toList(),
+    };
+  }
+
+  @override
+  List<Object?> get props => [prefixes, roots, suffixes];
+}
+
+/// 詞根資訊（v8.0.0 更新）
 @HiveType(typeId: 55)
 class RootInfoModel extends Equatable {
   @HiveField(0)
@@ -361,19 +461,25 @@ class RootInfoModel extends Equatable {
   @HiveField(1)
   final String memoryStrategy;
 
+  @HiveField(2)
+  final RootAnalysisModel? analysis;
+
   const RootInfoModel({
     required this.rootBreakdown,
     required this.memoryStrategy,
+    this.analysis,
   });
 
   factory RootInfoModel.fromJson(Map<String, dynamic> json) {
-    // Handle null values gracefully
     final rootBreakdown = json['root_breakdown'];
     final memoryStrategy = json['memory_strategy'];
     
     return RootInfoModel(
       rootBreakdown: rootBreakdown is String ? rootBreakdown : (rootBreakdown?.toString() ?? ''),
       memoryStrategy: memoryStrategy is String ? memoryStrategy : (memoryStrategy?.toString() ?? ''),
+      analysis: json['analysis'] != null
+          ? RootAnalysisModel.fromJson(json['analysis'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -381,11 +487,12 @@ class RootInfoModel extends Equatable {
     return {
       'root_breakdown': rootBreakdown,
       'memory_strategy': memoryStrategy,
+      if (analysis != null) 'analysis': analysis!.toJson(),
     };
   }
 
   @override
-  List<Object?> get props => [rootBreakdown, memoryStrategy];
+  List<Object?> get props => [rootBreakdown, memoryStrategy, analysis];
 }
 
 /// 完整的詞彙條目
