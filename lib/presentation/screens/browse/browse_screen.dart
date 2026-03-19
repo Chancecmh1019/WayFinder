@@ -56,9 +56,15 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
           children: [
             // ── Header ────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 8, 0),
+              padding: const EdgeInsets.fromLTRB(24, 28, 8, 0),
               child: Row(children: [
-                Text('字彙庫', style: Theme.of(context).textTheme.displaySmall),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('LIBRARY', style: TextStyle(fontSize: 11, letterSpacing: 3,
+                      color: isDark ? AppTheme.gray600 : AppTheme.gray400, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('字彙庫', style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      letterSpacing: -0.5, fontFamily: AppTheme.fontFamilyChinese)),
+                ]),
                 const Spacer(),
                 if (filter.tab == BrowseTab.words) ...[
                   IconButton(

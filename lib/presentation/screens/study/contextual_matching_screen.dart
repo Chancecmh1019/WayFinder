@@ -3,291 +3,176 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/contextual_enhancement_provider.dart';
-import '../../../domain/entities/vocabulary_entity.dart';
+import '../../../data/models/vocab_models_enhanced.dart';
 
-/// 情境配對 - 單字與定義配對
+/// 情境配對 — 單字 ↔ 中文定義
 class ContextualMatchingScreen extends ConsumerStatefulWidget {
   const ContextualMatchingScreen({super.key});
-
   @override
   ConsumerState<ContextualMatchingScreen> createState() => _ContextualMatchingScreenState();
 }
 
 class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScreen> {
-  List<VocabularyEntity> _words = [];
-  List<_MatchItem> _items = [];
+  List<_MatchTile> _tiles = [];
   int? _selectedIndex;
-  final Set<int> _matchedIndices = {};
-  int _matchedCount = 0;
+  final Set<int> _matched = {};
+  int _errors = 0;
+  bool _initialized = false;
+  List<WordEntryModel> _sourceWords = [];
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppTheme.pureBlack : AppTheme.offWhite;
+    final bg   = isDark ? AppTheme.pureBlack : AppTheme.offWhite;
     final card = isDark ? AppTheme.gray900 : AppTheme.pureWhite;
-    final fg = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
-
-    final learnedWords = ref.watch(learnedWordsProvider);
-
+    final fg   = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
+    final learnedAsync = ref.watch(learnedWordsProvider);
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: fg),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text('情境配對', style: TextStyle(color: fg, fontSize: 18)),
+        backgroundColor: bg, elevation: 0,
+        leading: IconButton(icon: Icon(Icons.close, color: fg), onPressed: () => Navigator.pop(context)),
+        title: Text('情境配對', style: TextStyle(color: fg, fontSize: 18, fontWeight: AppTheme.weightSemiBold)),
         centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                '$_matchedCount / ${_words.length}',
-                style: TextStyle(color: AppTheme.gray500, fontSize: 14),
-              ),
-            ),
-          ),
+          if (_sourceWords.isNotEmpty)
+            Padding(padding: const EdgeInsets.only(right: 16),
+              child: Center(child: Text('${_matched.length ~/ 2} / ${_sourceWords.length}',
+                  style: TextStyle(color: AppTheme.gray500, fontSize: 14)))),
         ],
       ),
-      body: learnedWords.when(
-        data: (words) {
-          if (_words.isEmpty && words.isNotEmpty) {
-            _initializeGame(words);
-          }
-          
-          if (_words.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.link_rounded, size: 64, color: AppTheme.gray400),
-                  const SizedBox(height: 16),
-                  Text(
-                    '還沒有學過的單字',
-                    style: TextStyle(color: fg, fontSize: 18, fontWeight: AppTheme.weightSemiBold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '先去學習一些新單字吧！',
-                    style: TextStyle(color: AppTheme.gray500, fontSize: 14),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return _buildContent(context, isDark, card, fg);
+      body: learnedAsync.when(
+        data: (allWords) {
+          if (!_initialized && allWords.isNotEmpty) _initGame(allWords);
+          if (_sourceWords.isEmpty) return _buildEmpty(fg, allWords.length);
+          return _buildGame(isDark, card, fg);
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => Center(
-          child: Text('載入失敗', style: TextStyle(color: AppTheme.gray500)),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        error: (_, __) => Center(child: Text('載入失敗', style: TextStyle(color: AppTheme.gray500))),
       ),
     );
   }
 
-  void _initializeGame(List<VocabularyEntity> words) {
-    _words = words.take(6).toList();
-    
-    // 創建配對項目
-    _items = [];
-    for (int i = 0; i < _words.length; i++) {
-      final word = _words[i];
-      final definition = word.senses.isNotEmpty ? word.senses.first.zhDef : '定義';
-      
-      _items.add(_MatchItem(
-        id: i,
-        word: word.lemma,
-        definition: definition,
-        isWord: true,
-      ));
-      
-      _items.add(_MatchItem(
-        id: i,
-        word: word.lemma,
-        definition: definition,
-        isWord: false,
-      ));
+  void _initGame(List<WordEntryModel> allWords) {
+    _initialized = true;
+    if (allWords.length < kMinContextualWords) return;
+    _sourceWords = (allWords.toList()..shuffle()).take(6).toList();
+    _buildTiles();
+  }
+
+  void _buildTiles() {
+    _tiles = [];
+    for (int i = 0; i < _sourceWords.length; i++) {
+      final w = _sourceWords[i];
+      final def = w.senses.isNotEmpty ? w.senses.first.zhDef : w.lemma;
+      _tiles.add(_MatchTile(id: i, content: w.lemma, isWord: true));
+      _tiles.add(_MatchTile(id: i, content: def, isWord: false));
     }
-    
-    // 打亂順序
-    _items.shuffle();
+    _tiles.shuffle();
+    _matched.clear(); _selectedIndex = null; _errors = 0;
   }
 
-  Widget _buildContent(BuildContext context, bool isDark, Color card, Color fg) {
-    return Column(
-      children: [
-        // 說明卡片 - 更緊湊的設計
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: card,
-            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            border: Border.all(color: isDark ? AppTheme.gray800 : AppTheme.gray200),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.touch_app, size: 16, color: isDark ? AppTheme.gray400 : AppTheme.gray600),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '點擊兩個相關的卡片進行配對',
-                  style: TextStyle(fontSize: 13, color: AppTheme.gray500),
-                ),
-              ),
-            ],
-          ),
+  Widget _buildEmpty(Color fg, int total) => Center(
+    child: Padding(padding: const EdgeInsets.all(32), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(Icons.link_rounded, size: 56, color: AppTheme.gray400), const SizedBox(height: 20),
+      Text(total < kMinContextualWords ? '再學 ${kMinContextualWords - total} 個單字即可開始' : '沒有可配對的單字',
+          style: TextStyle(color: fg, fontSize: 18, fontWeight: AppTheme.weightSemiBold), textAlign: TextAlign.center),
+      const SizedBox(height: 8),
+      Text('先去翻牌學習新單字吧！', style: TextStyle(color: AppTheme.gray500, fontSize: 14)),
+    ])),
+  );
+
+  Widget _buildGame(bool isDark, Color card, Color fg) {
+    final progress = _sourceWords.isEmpty ? 0.0 : _matched.length / 2 / _sourceWords.length;
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          ClipRRect(borderRadius: BorderRadius.circular(999), child: LinearProgressIndicator(
+            value: progress, minHeight: 3,
+            backgroundColor: isDark ? AppTheme.gray800 : AppTheme.gray100,
+            valueColor: AlwaysStoppedAnimation(isDark ? AppTheme.pureWhite : AppTheme.pureBlack),
+          )),
+          const SizedBox(height: 8),
+          Text('點擊兩個對應的卡片  ·  錯誤 $_errors 次',
+              style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
+        ]),
+      ),
+      Expanded(
+        child: GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, childAspectRatio: 1.4, crossAxisSpacing: 10, mainAxisSpacing: 10),
+          itemCount: _tiles.length,
+          itemBuilder: (_, i) => _buildTile(i, isDark, card, fg),
         ),
-        
-        // 配對卡片網格 - 更緊湊的間距
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-            ),
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              return _buildMatchCard(index, isDark, card, fg);
-            },
-          ),
-        ),
-      ],
-    );
+      ),
+    ]);
   }
 
-  Widget _buildMatchCard(int index, bool isDark, Color card, Color fg) {
-    final item = _items[index];
-    final isMatched = _matchedIndices.contains(index);
+  Widget _buildTile(int index, bool isDark, Color card, Color fg) {
+    final tile = _tiles[index];
+    final isMatched  = _matched.contains(index);
     final isSelected = _selectedIndex == index;
-    
-    Color borderColor;
-    Color bgColor;
-    
-    if (isMatched) {
-      borderColor = Colors.green;
-      bgColor = Colors.green.withValues(alpha: 0.1);
-    } else if (isSelected) {
-      borderColor = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
-      bgColor = isDark ? AppTheme.pureWhite.withValues(alpha: 0.1) : AppTheme.pureBlack.withValues(alpha: 0.05);
-    } else {
-      borderColor = isDark ? AppTheme.gray800 : AppTheme.gray200;
-      bgColor = card;
-    }
-    
+    final border = isMatched ? (isDark ? const Color(0xFF2A2A2A) : AppTheme.gray200)
+        : isSelected ? (isDark ? AppTheme.pureWhite : AppTheme.pureBlack)
+        : (isDark ? AppTheme.gray800 : AppTheme.gray200);
+    final bg = isMatched ? (isDark ? const Color(0xFF1A1A1A) : AppTheme.gray50)
+        : isSelected ? (isDark ? AppTheme.gray800 : AppTheme.gray100)
+        : card;
+    final textColor = isMatched ? AppTheme.gray500 : fg;
+
     return GestureDetector(
-      onTap: isMatched ? null : () => _onCardTap(index),
-      child: Container(
-        padding: const EdgeInsets.all(10),
+      onTap: isMatched ? null : () => _onTap(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          border: Border.all(color: borderColor, width: 2),
+          color: bg, borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          border: Border.all(color: border, width: isSelected ? 2 : 1.5),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isMatched)
-              Icon(Icons.check_circle, color: Colors.green, size: 16),
-            if (isMatched) const SizedBox(height: 4),
-            Expanded(
-              child: Center(
-                child: Text(
-                  item.isWord ? item.word : item.definition,
-                  style: TextStyle(
-                    fontSize: item.isWord ? 14 : 11,
-                    color: isMatched ? Colors.green : fg,
-                    fontWeight: item.isWord ? AppTheme.weightSemiBold : AppTheme.weightRegular,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.all(10),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          if (isMatched) ...[Icon(Icons.check, size: 13, color: AppTheme.gray500), const SizedBox(height: 3)],
+          Flexible(child: Text(tile.content, textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: tile.isWord ? 15 : 12, fontWeight: tile.isWord ? AppTheme.weightSemiBold : AppTheme.weightRegular, color: textColor))),
+        ]),
       ),
     );
   }
 
-  void _onCardTap(int index) {
+  void _onTap(int index) {
     HapticFeedback.lightImpact();
-    
-    if (_selectedIndex == null) {
-      // 第一次選擇
-      setState(() => _selectedIndex = index);
-    } else if (_selectedIndex == index) {
-      // 取消選擇
-      setState(() => _selectedIndex = null);
+    if (_selectedIndex == null) { setState(() => _selectedIndex = index); return; }
+    if (_selectedIndex == index) { setState(() => _selectedIndex = null); return; }
+    final a = _tiles[_selectedIndex!], b = _tiles[index];
+    if (a.id == b.id && a.isWord != b.isWord) {
+      HapticFeedback.mediumImpact();
+      setState(() { _matched.add(_selectedIndex!); _matched.add(index); _selectedIndex = null; });
+      if (_matched.length == _tiles.length) Future.delayed(const Duration(milliseconds: 400), _showComplete);
     } else {
-      // 第二次選擇，檢查配對
-      final first = _items[_selectedIndex!];
-      final second = _items[index];
-      
-      if (first.id == second.id && first.isWord != second.isWord) {
-        // 配對成功
-        HapticFeedback.heavyImpact();
-        setState(() {
-          _matchedIndices.add(_selectedIndex!);
-          _matchedIndices.add(index);
-          _selectedIndex = null;
-          _matchedCount++;
-        });
-        
-        // 檢查是否全部完成
-        if (_matchedCount == _words.length) {
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              _showCompletionDialog();
-            }
-          });
-        }
-      } else {
-        // 配對失敗
-        HapticFeedback.lightImpact();
-        setState(() => _selectedIndex = null);
-      }
+      setState(() { _errors++; _selectedIndex = index; });
     }
   }
 
-  void _showCompletionDialog() {
+  void _showComplete() {
+    final acc = _sourceWords.isEmpty ? 100
+        : ((_sourceWords.length / (_sourceWords.length + _errors)) * 100).round().clamp(0, 100);
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('完成！'),
-        content: const Text('你已完成所有配對'),
+      context: context, barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLarge)),
+        title: const Text('全部配對完成 ✓'),
+        content: Text('配對 ${_sourceWords.length} 組 · 錯誤 $_errors 次\n準確率 $acc%'),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('完成'),
-          ),
+          TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('完成')),
+          TextButton(onPressed: () { Navigator.pop(ctx); setState(() => _buildTiles()); }, child: const Text('再練一次')),
         ],
       ),
     );
   }
 }
 
-class _MatchItem {
-  final int id;
-  final String word;
-  final String definition;
-  final bool isWord;
-
-  _MatchItem({
-    required this.id,
-    required this.word,
-    required this.definition,
-    required this.isWord,
-  });
+class _MatchTile {
+  final int id; final String content; final bool isWord;
+  _MatchTile({required this.id, required this.content, required this.isWord});
 }

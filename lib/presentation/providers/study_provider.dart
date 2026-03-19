@@ -106,8 +106,13 @@ class FlashcardSessionNotifier extends StateNotifier<FlashcardSessionState> {
 
     final remaining = _fsrs.getRemainingNewCardsToday(dailyGoal!);
     if (remaining > 0) {
-      final tracked = {...dueCards.map((c) => c.lemma), ..._fsrs.getNewCards(limit: 9999).map((c) => c.lemma)};
-      final sorted = (db.words
+      final tracked = {
+        ...dueCards.map((c) => c.lemma),
+        ..._fsrs.getNewCards(limit: 9999).map((c) => c.lemma),
+      };
+
+      // 單字：按重要性排序
+      final sortedWords = (db.words
           .where((w) => w.senses.isNotEmpty && !tracked.contains(w.lemma))
           .toList()
         ..sort((a, b) {
@@ -116,10 +121,43 @@ class FlashcardSessionNotifier extends StateNotifier<FlashcardSessionState> {
               (w.inOfficialList ? 0.5 : 0) +
               ((6 - (w.level ?? 6)) * 0.1);
           return score(b).compareTo(score(a));
-        })).take(remaining);
-      for (final w in sorted) {
+        }));
+
+      // 片語：也加入新學隊列（優先度稍低，取 20% 配額）
+      final phraseQuota = (remaining * 0.2).round();
+      final wordQuota   = remaining - phraseQuota;
+
+      for (final w in sortedWords.take(wordQuota)) {
         if (w.senses.isEmpty) continue;
-        queue.add(StudyItem(lemma: w.lemma, senseId: w.senses.first.senseId, word: w, sense: w.senses.first, isNew: true));
+        // 只加入已解鎖的第一個 sense
+        final sense = w.senses.first;
+        queue.add(StudyItem(lemma: w.lemma, senseId: sense.senseId, word: w, sense: sense, isNew: true));
+      }
+
+      if (phraseQuota > 0) {
+        final sortedPhrases = (db.phrases
+            .where((p) => p.senses.isNotEmpty && !tracked.contains(p.lemma))
+            .toList()
+          ..sort((a, b) =>
+              (b.frequency?.importanceScore ?? 0).compareTo(a.frequency?.importanceScore ?? 0)));
+        for (final p in sortedPhrases.take(phraseQuota)) {
+          if (p.senses.isEmpty) continue;
+          // 將片語包成 WordEntryModel 相容格式（複用 word 欄位）
+          final fakeWord = WordEntryModel(
+            lemma: p.lemma, pos: ['phrase'],
+            level: null, inOfficialList: false,
+            frequency: p.frequency, senses: p.senses,
+            rootInfo: null, confusionNotes: const [],
+            synonyms: const [], antonyms: const [],
+            derivedForms: const [], lastUpdated: p.lastUpdated,
+            collocations: const [],
+          );
+          queue.add(StudyItem(
+            lemma: p.lemma, senseId: p.senses.first.senseId,
+            word: fakeWord, sense: p.senses.first,
+            isNew: true, isPhrase: true,
+          ));
+        }
       }
     }
 

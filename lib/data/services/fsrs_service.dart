@@ -47,6 +47,7 @@ class FsrsService {
   Future<void> reviewCard(String lemma, String senseId, FSRSRating rating) async {
     final model = getOrCreateCard(lemma, senseId);
     final now   = DateTime.now();
+    final stateBefore = model.state;
     final before = FSRSCard(
       state: CardState.values[model.state.clamp(0, 3)],
       due: model.due, stability: model.stability, difficulty: model.difficulty,
@@ -54,18 +55,42 @@ class FsrsService {
       lastReview: model.lastReview, scheduledDays: model.scheduledDays,
     );
     final after = _algo.next(before, rating);
-    await _cards.put(_key(lemma, senseId), model.copyWith(
+    final updatedModel = model.copyWith(
       state: after.state.index, due: after.due, stability: after.stability,
       difficulty: after.difficulty, reps: after.reps, lapses: after.lapses,
       lastReview: now, scheduledDays: after.scheduledDays, updatedAt: now,
-    ));
+    );
+    await _cards.put(_key(lemma, senseId), updatedModel);
     final elapsed = model.lastReview != null
         ? now.difference(model.lastReview!).inDays : 0;
     await _logs.add(FSRSReviewLogModel.fromReview(
       userId: _user, lemma: lemma, senseId: senseId,
       rating: rating, cardBefore: before, cardAfter: after, elapsedDays: elapsed,
     ));
-    await _updateStats(rating, model.state);
+    await _updateStats(rating, stateBefore);
+    // 若此 sense 剛升入 Review 狀態，解鎖同字下一個 sense
+    if (stateBefore != CardState.review.index &&
+        updatedModel.state == CardState.review.index) {
+      await _tryUnlockNextSense(lemma, senseId);
+    }
+  }
+
+  /// 解鎖下一個 sense（第一譯掌握後解鎖第二譯，依此類推）
+  Future<void> _tryUnlockNextSense(String lemma, String currentSenseId) async {
+    final allCards = _cards.values
+        .where((c) => c.lemma == lemma)
+        .toList()
+      ..sort((a, b) => a.senseId.compareTo(b.senseId));
+    if (allCards.length < 2) return;
+    final idx = allCards.indexWhere((c) => c.senseId == currentSenseId);
+    if (idx == -1 || idx >= allCards.length - 1) return;
+    final next = allCards[idx + 1];
+    if (!next.isUnlocked) {
+      await _cards.put(
+        _key(lemma, next.senseId),
+        next.copyWith(isUnlocked: true, updatedAt: DateTime.now()),
+      );
+    }
   }
 
   Future<void> _updateStats(FSRSRating rating, int stateBefore) async {

@@ -201,7 +201,9 @@ class _CardFront extends StatelessWidget {
         children: [
           // Tags
           Row(children: [
-            if (item.isNew) _Tag('新詞', solid: true, isDark: isDark),
+            if (item.isPhrase) _Tag('片語', solid: false, isDark: isDark),
+            if (item.isNew && !item.isPhrase) _Tag('新詞', solid: true, isDark: isDark),
+            if (item.isNew && item.isPhrase) _Tag('新片語', solid: true, isDark: isDark),
             if (levelLabel != null) ...[
               const SizedBox(width: 6),
               _Tag(levelLabel, isDark: isDark),

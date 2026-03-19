@@ -6,6 +6,7 @@ import '../../data/models/fsrs_review_log_model.dart';
 import '../../domain/services/fsrs_algorithm.dart';
 import '../../domain/usecases/unified_learning_usecase.dart';
 import 'settings_provider.dart';
+import '../../core/providers/app_providers.dart';
 
 // ═══════════════════════════════════════════════════════════
 // Providers for Hive boxes
@@ -94,18 +95,13 @@ final currentStreakProvider = Provider<int>((ref) {
   return useCase.getCurrentStreak('local_user');
 });
 
-/// 今天的統計數據
+/// 今天的統計數據（直接從 FsrsService 讀取，確保不為 null）
 final todayStatsProvider = Provider<FSRSDailyStatsModel?>((ref) {
-  // 監聽刷新觸發器
   ref.watch(unifiedStatsRefreshProvider);
-  
-  final useCase = ref.watch(unifiedLearningUseCaseProvider);
-  
-  if (useCase == null) {
-    return null;
-  }
-  
-  return useCase.getTodayStats('local_user');
+  ref.watch(statsRefreshTriggerProvider);
+  final fsrs = ref.watch(fsrsServiceProvider);
+  if (!fsrs.isInitialized()) return null;
+  return fsrs.getTodayStats();
 });
 
 // ═══════════════════════════════════════════════════════════

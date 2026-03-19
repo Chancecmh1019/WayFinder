@@ -45,22 +45,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: isDark ? AppTheme.pureBlack : AppTheme.offWhite,
       body: SafeArea(
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
-            // App Bar
-            SliverAppBar(
-              backgroundColor: isDark ? AppTheme.pureBlack : AppTheme.offWhite,
-              elevation: 0,
-              pinned: true,
-              title: Text(
-                '設定',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
+            // ── Header ────────────────────────────────────────────
+            SliverToBoxAdapter(child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 20, 0),
+              child: Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('SETTINGS', style: TextStyle(fontSize: 11, letterSpacing: 3,
+                      color: isDark ? AppTheme.gray600 : AppTheme.gray400,
+                      fontWeight: AppTheme.weightSemiBold)),
+                  const SizedBox(height: 6),
+                  Text('設定', style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      letterSpacing: -0.5, fontFamily: AppTheme.fontFamilyChinese)),
+                ])),
+                IconButton(
+                  icon: Icon(Icons.close, color: isDark ? AppTheme.gray400 : AppTheme.gray600, size: 22),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ]),
+            )),
 
             // Content
             SliverList(
               delegate: SliverChildListDelegate([
-                const SizedBox(height: AppTheme.space8),
+                const SizedBox(height: AppTheme.space20),
 
                 // Learning section
                 _buildSectionHeader(context, '學習設定'),
@@ -116,30 +125,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                 // Data Management section
                 _buildSectionHeader(context, '資料管理'),
-                
-                // 本地儲存說明
                 _buildSettingItem(
                   context: context,
                   title: '本地儲存',
-                  subtitle: '所有數據儲存在本地裝置',
-                  trailing: const Icon(Icons.storage, size: 20),
+                  subtitle: '所有資料儲存在本地裝置',
+                  trailing: Icon(Icons.lock_outline, size: 18,
+                      color: isDark ? AppTheme.gray600 : AppTheme.gray400),
                   onTap: null,
                 ),
                 _buildDivider(isDark),
-                
                 _buildSettingItem(
                   context: context,
                   title: '匯出學習記錄',
-                  subtitle: '將學習資料匯出為 JSON 或 CSV',
+                  subtitle: '匯出為 JSON 或 CSV',
                   trailing: null,
                   onTap: () => _showExportDialog(context, ref, isDark),
                 ),
                 _buildDivider(isDark),
-                
                 _buildSettingItem(
                   context: context,
                   title: '匯入學習記錄',
-                  subtitle: '從 JSON 檔案恢復學習資料',
+                  subtitle: '從 JSON 檔案恢復資料',
                   trailing: null,
                   onTap: () => _importData(context, ref),
                 ),

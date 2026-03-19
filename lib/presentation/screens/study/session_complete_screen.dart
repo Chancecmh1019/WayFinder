@@ -20,15 +20,15 @@ class SessionCompleteScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
-    final accuracy  = totalCount > 0 ? (correctCount / totalCount * 100).round() : 0;
-    final todayStats = ref.watch(todayStatsProvider);
-    final dailyGoal  = ref.watch(dailyGoalProvider);
+    final isDark      = Theme.of(context).brightness == Brightness.dark;
+    final accuracy    = totalCount > 0 ? (correctCount / totalCount * 100).round() : 0;
+    final todayStats  = ref.watch(todayStatsProvider);
+    final dailyGoal   = ref.watch(dailyGoalProvider);
     final bg   = isDark ? AppTheme.pureBlack : AppTheme.offWhite;
-    final card = isDark ? AppTheme.gray900 : AppTheme.pureWhite;
+    final card = isDark ? AppTheme.gray900   : AppTheme.pureWhite;
     final fg   = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
 
-    final todayNew     = todayStats?.newCards ?? 0;
+    final todayNew     = todayStats?.newCards     ?? 0;
     final todayReviews = todayStats?.totalReviews ?? 0;
     final goalDone     = todayNew >= dailyGoal;
 
@@ -42,71 +42,72 @@ class SessionCompleteScreen extends ConsumerWidget {
             children: [
               const Spacer(flex: 2),
 
-              // Headline
-              Text('DONE',
-                  style: TextStyle(
-                    fontSize: 12, fontWeight: AppTheme.weightBold,
-                    letterSpacing: 3, color: AppTheme.gray400,
-                  )),
-              const SizedBox(height: 8),
+              // ── Headline ─────────────────────────────────
+              Text('DONE', style: TextStyle(
+                fontSize: 11, fontWeight: AppTheme.weightBold,
+                letterSpacing: 3, color: AppTheme.gray500,
+              )),
+              const SizedBox(height: 10),
               Text(
                 goalDone ? '今日目標\n已完成 ✓' : '本次\n學習完成',
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamilyChinese,
-                  fontSize: 42, fontWeight: AppTheme.weightBold,
-                  letterSpacing: -1.5, height: 1.1, color: fg,
+                  fontSize: 44, fontWeight: FontWeight.w700,
+                  letterSpacing: -2, height: 1.1, color: fg,
                 ),
               ),
 
               const Spacer(),
 
-              // This session stats
+              // ── 本次成績 ──────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: card,
                   borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                  boxShadow: isDark ? null : AppTheme.cardShadow,
+                  border: Border.all(color: isDark ? AppTheme.gray800 : AppTheme.gray100),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('本次', style: TextStyle(fontSize: 12, color: AppTheme.gray500, fontWeight: AppTheme.weightSemiBold)),
+                  Text('本次', style: TextStyle(fontSize: 11, letterSpacing: 1,
+                      color: AppTheme.gray500, fontWeight: AppTheme.weightSemiBold)),
                   const SizedBox(height: 16),
                   Row(children: [
-                    _MiniStat('$totalCount', '題', isDark: isDark, fg: fg),
-                    _VertDivider(isDark: isDark),
-                    _MiniStat('$correctCount', '答對', isDark: isDark, fg: fg),
-                    _VertDivider(isDark: isDark),
-                    _MiniStat('$accuracy%', '正確率', isDark: isDark, fg: fg),
+                    _Stat('$totalCount', '題數', fg: fg),
+                    _Divider(isDark: isDark),
+                    _Stat('$correctCount', '答對', fg: fg),
+                    _Divider(isDark: isDark),
+                    _Stat('$accuracy%', '正確率', fg: fg),
                   ]),
                 ]),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Today total
+              // ── 今日累計 ──────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: card,
                   borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                  boxShadow: isDark ? null : AppTheme.cardShadow,
+                  border: Border.all(color: isDark ? AppTheme.gray800 : AppTheme.gray100),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('今日累計', style: TextStyle(fontSize: 12, color: AppTheme.gray500, fontWeight: AppTheme.weightSemiBold)),
+                  Text('今日累計', style: TextStyle(fontSize: 11, letterSpacing: 1,
+                      color: AppTheme.gray500, fontWeight: AppTheme.weightSemiBold)),
                   const SizedBox(height: 16),
                   Row(children: [
-                    _MiniStat('$todayNew', '新單字', isDark: isDark, fg: fg),
-                    _VertDivider(isDark: isDark),
-                    _MiniStat('$todayReviews', '總複習', isDark: isDark, fg: fg),
-                    _VertDivider(isDark: isDark),
-                    _MiniStat('$dailyGoal', '每日目標', isDark: isDark, fg: fg),
+                    _Stat('$todayNew', '新單字', fg: fg),
+                    _Divider(isDark: isDark),
+                    _Stat('$todayReviews', '總複習', fg: fg),
+                    _Divider(isDark: isDark),
+                    _Stat('$dailyGoal', '每日目標', fg: fg),
                   ]),
                 ]),
               ),
 
               const Spacer(flex: 2),
 
-              // CTA buttons
+              // ── 按鈕 ──────────────────────────────────────
               SizedBox(
                 width: double.infinity, height: 52,
                 child: ElevatedButton(
@@ -117,13 +118,14 @@ class SessionCompleteScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
                     foregroundColor: isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
-                    elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
                   ),
                   child: const Text('返回首頁', style: TextStyle(fontSize: 15, fontWeight: AppTheme.weightSemiBold)),
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               SizedBox(
                 width: double.infinity, height: 52,
@@ -134,13 +136,12 @@ class SessionCompleteScreen extends ConsumerWidget {
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: fg,
-                    side: BorderSide(color: isDark ? AppTheme.gray700 : AppTheme.gray300),
+                    side: BorderSide(color: isDark ? AppTheme.gray700 : AppTheme.gray200),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
                   ),
                   child: const Text('繼續學習', style: TextStyle(fontSize: 15, fontWeight: AppTheme.weightSemiBold)),
                 ),
               ),
-
               const SizedBox(height: 8),
             ],
           ),
@@ -150,29 +151,25 @@ class SessionCompleteScreen extends ConsumerWidget {
   }
 }
 
-class _MiniStat extends StatelessWidget {
+class _Stat extends StatelessWidget {
   final String value, label;
-  final bool isDark;
   final Color fg;
-  const _MiniStat(this.value, this.label, {required this.isDark, required this.fg});
+  const _Stat(this.value, this.label, {required this.fg});
 
   @override
   Widget build(BuildContext context) => Expanded(
     child: Column(children: [
-      Text(value,
-          style: TextStyle(
-              fontFamily: AppTheme.fontFamilyEnglish,
-              fontSize: 28, fontWeight: AppTheme.weightBold,
-              color: fg, letterSpacing: -1)),
+      Text(value, style: TextStyle(fontFamily: AppTheme.fontFamilyEnglish,
+          fontSize: 28, fontWeight: FontWeight.w700, color: fg, letterSpacing: -1)),
       const SizedBox(height: 3),
       Text(label, style: TextStyle(fontSize: 11, color: AppTheme.gray500)),
     ]),
   );
 }
 
-class _VertDivider extends StatelessWidget {
+class _Divider extends StatelessWidget {
   final bool isDark;
-  const _VertDivider({required this.isDark});
+  const _Divider({required this.isDark});
   @override
   Widget build(BuildContext context) => Container(
     width: 1, height: 44,

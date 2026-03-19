@@ -19,15 +19,18 @@ class GrammarScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
-              child: Text('文法句型',
-                  style: Theme.of(context).textTheme.displaySmall),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Text('學測高頻考點，共 21 個句型',
-                  style:
-                      TextStyle(fontSize: 14, color: AppTheme.gray500)),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('GRAMMAR', style: TextStyle(fontSize: 11, letterSpacing: 3,
+                    color: isDark ? AppTheme.gray600 : AppTheme.gray400, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Text('文法句型', style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    letterSpacing: -0.5, fontFamily: AppTheme.fontFamilyChinese)),
+                const SizedBox(height: 4),
+                Text('學測高頻句型  ·  21 個考點',
+                    style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
+                const SizedBox(height: 16),
+              ]),
             ),
             Expanded(
               child: patternsAsync.when(
