@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/local/progress_local_datasource.dart';
 import '../../data/datasources/local/vocabulary_local_datasource.dart';
+import '../../data/datasources/local/user_local_datasource.dart';
 import '../../data/repositories/review_scheduler_repository_impl.dart';
 import '../../data/repositories/vocabulary_repository_impl.dart';
+import '../../data/repositories/word_folder_repository.dart';
 import '../../data/services/export_service.dart';
 import '../../data/services/import_service.dart';
 import '../../domain/repositories/review_scheduler_repository.dart';
@@ -18,6 +20,18 @@ final progressLocalDataSourceProvider = Provider<ProgressLocalDataSource>((ref) 
 /// Provider for VocabularyLocalDataSource  
 final vocabularyLocalDataSourceProvider = Provider<VocabularyLocalDataSource>((ref) {
   return VocabularyLocalDataSource();
+});
+
+/// Provider for UserLocalDataSource
+final userLocalDataSourceProvider = Provider<UserLocalDataSource>((ref) {
+  return UserLocalDataSource();
+});
+
+/// Provider for WordFolderRepository
+final wordFolderRepositoryProvider = Provider<WordFolderRepository>((ref) {
+  final repository = WordFolderRepository();
+  // 初始化會在使用時自動執行
+  return repository;
 });
 
 /// Provider for SM2Algorithm
@@ -69,15 +83,21 @@ final vocabularyRepositoryProvider = Provider<VocabularyRepository>((ref) {
 /// Provider for ExportService
 final exportServiceProvider = Provider<ExportService>((ref) {
   final reviewSchedulerRepository = ref.watch(reviewSchedulerRepositoryProvider);
+  final userLocalDataSource = ref.watch(userLocalDataSourceProvider);
+  final wordFolderRepository = ref.watch(wordFolderRepositoryProvider);
   
   return ExportService(
     reviewSchedulerRepository: reviewSchedulerRepository,
+    userLocalDataSource: userLocalDataSource,
+    wordFolderRepository: wordFolderRepository,
   );
 });
 
 /// Provider for ImportService
 final importServiceProvider = Provider<ImportService?>((ref) {
   final learningUseCase = ref.watch(unifiedLearningUseCaseProvider);
+  final userLocalDataSource = ref.watch(userLocalDataSourceProvider);
+  final wordFolderRepository = ref.watch(wordFolderRepositoryProvider);
   
   if (learningUseCase == null) {
     return null;
@@ -85,5 +105,7 @@ final importServiceProvider = Provider<ImportService?>((ref) {
   
   return ImportService(
     learningUseCase: learningUseCase,
+    userLocalDataSource: userLocalDataSource,
+    wordFolderRepository: wordFolderRepository,
   );
 });

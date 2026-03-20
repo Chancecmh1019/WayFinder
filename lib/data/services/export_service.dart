@@ -1,133 +1,163 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../domain/repositories/review_scheduler_repository.dart';
 import '../../core/utils/logger.dart';
+import '../models/fsrs_card_model.dart';
+import '../models/fsrs_review_log_model.dart';
+import '../models/fsrs_daily_stats_model.dart';
+import '../datasources/local/user_local_datasource.dart';
+import '../repositories/word_folder_repository.dart';
 
 /// 匯出學習資料服務
 /// 
 /// 提供多種格式的資料匯出功能：
-/// - JSON: 完整資料結構
-/// - CSV: 簡化的表格格式
+/// - JSON: 完整資料結構（包含所有應用程式資料）
+/// - CSV: 簡化的表格格式（僅學習進度）
 class ExportService {
   final ReviewSchedulerRepository _reviewSchedulerRepository;
+  final UserLocalDataSource _userLocalDataSource;
+  final WordFolderRepository _wordFolderRepository;
 
   ExportService({
     required ReviewSchedulerRepository reviewSchedulerRepository,
-  }) : _reviewSchedulerRepository = reviewSchedulerRepository;
+    required UserLocalDataSource userLocalDataSource,
+    required WordFolderRepository wordFolderRepository,
+  }) : _reviewSchedulerRepository = reviewSchedulerRepository,
+       _userLocalDataSource = userLocalDataSource,
+       _wordFolderRepository = wordFolderRepository;
 
-  /// 匯出所有學習記錄為 JSON
+  /// 匯出所有應用程式資料為 JSON（包含設定、學習資料、資料夾等）
   Future<String> exportToJson() async {
+    try {
+      AppLogger.info('開始匯出完整應用程式資料');
 
-    // 獲取所有學習進度
-    final progressResult = await _reviewSchedulerRepository.getAllProgress();
-    final progressList = progressResult.fold(
-      (failure) => <dynamic>[],
-      (data) => data,
-    );
+      // 1. 獲取使用者設定
+      final userModel = await _userLocalDataSource.getUser();
+      final userSettings = userModel?.settings.toEntity();
 
-    // 獲取統計資料
-    final learnedCountResult = await _reviewSchedulerRepository.getLearnedWordsCount();
-    final learnedCount = learnedCountResult.fold((failure) => 0, (count) => count);
+      // 2. 獲取 FSRS 卡片資料
+      final cardsBox = await Hive.openBox<FSRSCardModel>('fsrs_cards');
+      final cards = cardsBox.values.map((card) => card.toJson()).toList();
 
-    final masteredCountResult = await _reviewSchedulerRepository.getMasteredWordsCount();
-    final masteredCount = masteredCountResult.fold((failure) => 0, (count) => count);
+      // 3. 獲取複習記錄
+      final reviewLogsBox = await Hive.openBox<FSRSReviewLogModel>('fsrs_review_logs');
+      final reviewLogs = reviewLogsBox.values.map((log) => log.toJson()).toList();
 
-    final streakResult = await _reviewSchedulerRepository.getLearningStreak();
-    final streak = streakResult.fold((failure) => 0, (count) => count);
+      // 4. 獲取每日統計
+      final dailyStatsBox = await Hive.openBox<FSRSDailyStatsModel>('fsrs_daily_stats');
+      final dailyStats = dailyStatsBox.values.map((stats) => stats.toJson()).toList();
 
-    // 計算總複習次數和正確次數
-    int totalReviews = 0;
-    int correctReviews = 0;
-    Duration totalTimeSpent = Duration.zero;
+      // 5. 獲取單字資料夾
+      final folders = await _wordFolderRepository.getAllFolders();
+      final foldersData = folders.map((folder) => folder.toJson()).toList();
 
-    for (final progress in progressList) {
-      totalReviews += progress.history.length as int;
-      correctReviews += (progress.history.where((h) => h.correct).length as int);
+      // 6. 計算統計資料
+      final learnedCountResult = await _reviewSchedulerRepository.getLearnedWordsCount();
+      final learnedCount = learnedCountResult.fold((failure) => 0, (count) => count);
+
+      final masteredCountResult = await _reviewSchedulerRepository.getMasteredWordsCount();
+      final masteredCount = masteredCountResult.fold((failure) => 0, (count) => count);
+
+      final streakResult = await _reviewSchedulerRepository.getLearningStreak();
+      final streak = streakResult.fold((failure) => 0, (count) => count);
+
+      // 組合完整匯出資料
+      final exportData = {
+        'exportDate': DateTime.now().toIso8601String(),
+        'exportVersion': '2.0', // 升級版本號
+        'appName': 'WayFinder',
+        'appVersion': '1.0.0',
+        
+        // 使用者設定
+        'userSettings': userSettings != null ? {
+          'targetLevel': userSettings.targetLevel,
+          'focusAreas': userSettings.focusAreas,
+          'learningStyle': userSettings.learningStyle.toString().split('.').last,
+          'includePhrasesInStudy': userSettings.includePhrasesInStudy,
+          'dailyGoal': userSettings.dailyGoal,
+          'preferredPronunciation': userSettings.preferredPronunciation.toString().split('.').last,
+          'autoPlayAudio': userSettings.autoPlayAudio,
+          'ttsEngine': userSettings.ttsEngine.toString().split('.').last,
+          'speechRate': userSettings.speechRate,
+          'hasCompletedOnboarding': userSettings.hasCompletedOnboarding,
+        } : null,
+
+        // 統計資料
+        'statistics': {
+          'totalCards': cards.length,
+          'learnedWords': learnedCount,
+          'masteredWords': masteredCount,
+          'totalReviews': reviewLogs.length,
+          'learningStreak': streak,
+          'totalFolders': folders.length,
+          'totalWordsInFolders': folders.fold<int>(0, (sum, f) => sum + f.totalCount),
+        },
+
+        // FSRS 資料
+        'fsrsData': {
+          'cards': cards,
+          'reviewLogs': reviewLogs,
+          'dailyStats': dailyStats,
+        },
+
+        // 單字資料夾
+        'wordFolders': foldersData,
+      };
+
+      AppLogger.info('匯出資料完成：${cards.length} 張卡片，${reviewLogs.length} 筆複習記錄，${folders.length} 個資料夾');
+      return const JsonEncoder.withIndent('  ').convert(exportData);
       
-      for (final history in progress.history) {
-        totalTimeSpent += history.timeSpent;
-      }
+    } catch (e, stackTrace) {
+      AppLogger.error('匯出資料失敗', e, stackTrace);
+      rethrow;
     }
-
-    final exportData = {
-      'exportDate': DateTime.now().toIso8601String(),
-      'exportVersion': '1.0',
-      'appName': 'WayFinder',
-      'statistics': {
-        'totalWords': progressList.length,
-        'learnedWords': learnedCount,
-        'masteredWords': masteredCount,
-        'totalReviews': totalReviews,
-        'correctReviews': correctReviews,
-        'accuracy': totalReviews > 0 ? (correctReviews / totalReviews * 100).toStringAsFixed(2) : '0.00',
-        'totalTimeSpent': totalTimeSpent.inSeconds,
-        'totalTimeSpentFormatted': _formatDuration(totalTimeSpent),
-        'learningStreak': streak,
-        'averageTimePerWord': progressList.isNotEmpty 
-            ? (totalTimeSpent.inSeconds / progressList.length).toStringAsFixed(2)
-            : '0.00',
-      },
-      'progress': progressList.map((p) => {
-        'word': p.lemma,
-        'repetitions': p.repetitions,
-        'interval': p.interval,
-        'easeFactor': p.easeFactor,
-        'nextReviewDate': p.nextReviewDate.toIso8601String(),
-        'lastReviewDate': p.lastReviewDate.toIso8601String(),
-        'proficiencyLevel': p.proficiencyLevel.value,
-        'proficiencyLevelName': p.proficiencyLevel.displayName,
-        'isDue': p.isDue,
-        'reviewHistory': p.history.map((h) => {
-          'date': h.reviewDate.toIso8601String(),
-          'quality': h.quality,
-          'timeSpent': h.timeSpent.inSeconds,
-          'questionType': h.questionType,
-          'correct': h.correct,
-        }).toList(),
-      }).toList(),
-    };
-
-    return const JsonEncoder.withIndent('  ').convert(exportData);
   }
 
-  /// 匯出為 CSV 格式
+  /// 匯出為 CSV 格式（僅學習進度）
   Future<String> exportToCsv() async {
+    try {
+      AppLogger.info('開始匯出 CSV 格式');
 
-    // 獲取所有學習進度
-    final progressResult = await _reviewSchedulerRepository.getAllProgress();
-    final progressList = progressResult.fold(
-      (failure) => <dynamic>[],
-      (data) => data,
-    );
+      // 獲取 FSRS 卡片資料
+      final cardsBox = await Hive.openBox<FSRSCardModel>('fsrs_cards');
+      final cards = cardsBox.values.toList();
 
-    final csvBuffer = StringBuffer();
-    
-    // Header
-    csvBuffer.writeln('單字,重複次數,間隔天數,難易度因子,下次複習日期,上次複習日期,熟練度,總複習次數,正確次數,正確率');
-    
-    // Data rows
-    for (final progress in progressList) {
-      final totalReviews = progress.history.length;
-      final correctReviews = progress.history.where((h) => h.correct).length;
-      final accuracy = totalReviews > 0 ? (correctReviews / totalReviews * 100).toStringAsFixed(1) : '0.0';
+      final csvBuffer = StringBuffer();
       
-      csvBuffer.writeln(
-        '${progress.lemma},'
-        '${progress.repetitions},'
-        '${progress.interval},'
-        '${progress.easeFactor.toStringAsFixed(2)},'
-        '${_formatDate(progress.nextReviewDate)},'
-        '${_formatDate(progress.lastReviewDate)},'
-        '${progress.proficiencyLevel.displayName},'
-        '$totalReviews,'
-        '$correctReviews,'
-        '$accuracy%'
-      );
-    }
+      // Header
+      csvBuffer.writeln('單字,義項ID,狀態,重複次數,失誤次數,穩定性,難度,下次複習日期,上次複習日期,預定天數');
+      
+      // Data rows
+      for (final card in cards) {
+        final stateNames = ['新卡片', '學習中', '複習中', '重新學習'];
+        final stateName = card.state >= 0 && card.state < stateNames.length 
+            ? stateNames[card.state] 
+            : '未知';
+        
+        csvBuffer.writeln(
+          '${card.lemma},'
+          '${card.senseId},'
+          '$stateName,'
+          '${card.reps},'
+          '${card.lapses},'
+          '${card.stability.toStringAsFixed(2)},'
+          '${card.difficulty.toStringAsFixed(2)},'
+          '${_formatDate(card.due)},'
+          '${card.lastReview != null ? _formatDate(card.lastReview!) : ""},'
+          '${card.scheduledDays}'
+        );
+      }
 
-    return csvBuffer.toString();
+      AppLogger.info('CSV 匯出完成：${cards.length} 張卡片');
+      return csvBuffer.toString();
+      
+    } catch (e, stackTrace) {
+      AppLogger.error('匯出 CSV 失敗', e, stackTrace);
+      rethrow;
+    }
   }
 
   /// 儲存並分享匯出檔案
