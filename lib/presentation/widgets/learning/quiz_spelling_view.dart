@@ -256,7 +256,7 @@ class _QuizSpellingViewState extends State<QuizSpellingView> {
                      onPressed: widget.onContinue,
                      style: ElevatedButton.styleFrom(
                        padding: const EdgeInsets.symmetric(vertical: 16),
-                       backgroundColor: widget.isCorrect == true ? Colors.green : Colors.red,
+                       backgroundColor: widget.isCorrect == true ? const Color(0xFF3A3A3A) : const Color(0xFF888888),
                        foregroundColor: Colors.white,
                        elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -6,11 +6,19 @@ import '../../domain/services/fsrs_algorithm.dart';
 import '../../core/providers/app_providers.dart';
 import 'settings_provider.dart';
 
-// ── Study Mode ─────────────────────────────────────────────
+// ── Session Mode ────────────────────────────────────────────
+
+enum SessionMode {
+  daily,     // 每日必做：FSRS 到期複習 + 今日新詞
+  weakWords, // 弱點攻克：多次忘記的單字集中強化
+  custom,    // 自訂清單
+}
+
+// ── Study Mode (quiz type) ──────────────────────────────────
 
 enum StudyMode { flashcard, cloze, multipleChoice, spelling }
 
-// ── Session Item ───────────────────────────────────────────
+// ── Study Item ─────────────────────────────────────────────
 
 class StudyItem {
   final String lemma;
@@ -30,42 +38,65 @@ class StudyItem {
   });
 }
 
-// ── Flashcard Session ──────────────────────────────────────
+// ── Flashcard Session State ─────────────────────────────────
 
 class FlashcardSessionState {
   final List<StudyItem> queue;
   final int currentIndex;
   final bool isFlipped;
   final bool isComplete;
+  final bool isLoading;
   final int correctCount;
   final int totalSeen;
   final SchedulingInfo? nextIntervals;
+  final SessionMode mode;
 
   const FlashcardSessionState({
     this.queue = const [],
     this.currentIndex = 0,
     this.isFlipped = false,
     this.isComplete = false,
+    this.isLoading = false,
     this.correctCount = 0,
     this.totalSeen = 0,
     this.nextIntervals,
+    this.mode = SessionMode.daily,
   });
 
   StudyItem? get currentItem =>
       queue.isNotEmpty && currentIndex < queue.length ? queue[currentIndex] : null;
 
-  double get progress => queue.isEmpty ? 0.0 : currentIndex / queue.length;
+  double get progress =>
+      queue.isEmpty ? 0.0 : currentIndex / queue.length;
+
+  int get newCount => queue.where((i) => i.isNew).length;
+  int get reviewCount => queue.where((i) => !i.isNew).length;
 
   FlashcardSessionState copyWith({
-    List<StudyItem>? queue, int? currentIndex, bool? isFlipped,
-    bool? isComplete, int? correctCount, int? totalSeen, SchedulingInfo? nextIntervals,
-  }) => FlashcardSessionState(
-    queue: queue ?? this.queue, currentIndex: currentIndex ?? this.currentIndex,
-    isFlipped: isFlipped ?? this.isFlipped, isComplete: isComplete ?? this.isComplete,
-    correctCount: correctCount ?? this.correctCount, totalSeen: totalSeen ?? this.totalSeen,
-    nextIntervals: nextIntervals ?? this.nextIntervals,
-  );
+    List<StudyItem>? queue,
+    int? currentIndex,
+    bool? isFlipped,
+    bool? isComplete,
+    bool? isLoading,
+    int? correctCount,
+    int? totalSeen,
+    SchedulingInfo? nextIntervals,
+    SessionMode? mode,
+  }) =>
+      FlashcardSessionState(
+        queue: queue ?? this.queue,
+        currentIndex: currentIndex ?? this.currentIndex,
+        isFlipped: isFlipped ?? this.isFlipped,
+        isComplete: isComplete ?? this.isComplete,
+        isLoading: isLoading ?? this.isLoading,
+        correctCount: correctCount ?? this.correctCount,
+        totalSeen: totalSeen ?? this.totalSeen,
+        nextIntervals: nextIntervals ?? this.nextIntervals,
+        mode: mode ?? this.mode,
+      );
 }
+
+// ── Flashcard Session Notifier ──────────────────────────────
 
 class FlashcardSessionNotifier extends StateNotifier<FlashcardSessionState> {
   final FsrsService _fsrs;
@@ -75,119 +106,178 @@ class FlashcardSessionNotifier extends StateNotifier<FlashcardSessionState> {
   FlashcardSessionNotifier(this._fsrs, this._vocab, this._ref)
       : super(const FlashcardSessionState());
 
-  Future<void> startSession({int? newLimit, int? reviewLimit, List<String>? customList}) async {
-    final dailyGoal = newLimit ?? _ref.read(dailyGoalProvider);
-    final db = await _vocab.loadDatabase();
+  /// 統一入口：僅由 FlashcardScreen.initState() 呼叫
+  Future<void> startSession({
+    SessionMode mode = SessionMode.daily,
+    List<String>? customList,
+  }) async {
+    if (state.isLoading) return;
+    state = FlashcardSessionState(isLoading: true, mode: mode);
 
-    if (customList != null && customList.isNotEmpty) {
-      final queue = customList
-          .expand((lemma) {
-            final w = db.words.where((e) => e.lemma == lemma).firstOrNull;
-            if (w == null || w.senses.isEmpty) return <StudyItem>[];
-            return [StudyItem(lemma: w.lemma, senseId: w.senses.first.senseId, word: w, sense: w.senses.first)];
-          })
-          .toList()..shuffle();
-      state = FlashcardSessionState(
-        queue: queue, isComplete: queue.isEmpty,
-        nextIntervals: queue.isNotEmpty ? _fsrs.getNextIntervals(queue.first.lemma, queue.first.senseId) : null,
-      );
-      return;
-    }
+    try {
+      final db = await _vocab.loadDatabase();
+      List<StudyItem> queue;
 
-    final dueCards = _fsrs.getDueCards(limit: reviewLimit ?? (dailyGoal! * 3));
-    final queue = <StudyItem>[];
-
-    for (final card in dueCards) {
-      final w = db.words.where((e) => e.lemma == card.lemma).firstOrNull;
-      if (w == null || w.senses.isEmpty) continue;
-      final s = w.senses.where((e) => e.senseId == card.senseId).firstOrNull ?? w.senses.first;
-      queue.add(StudyItem(lemma: w.lemma, senseId: s.senseId, word: w, sense: s));
-    }
-
-    final remaining = _fsrs.getRemainingNewCardsToday(dailyGoal!);
-    if (remaining > 0) {
-      final tracked = {
-        ...dueCards.map((c) => c.lemma),
-        ..._fsrs.getNewCards(limit: 9999).map((c) => c.lemma),
-      };
-
-      // 單字：按重要性排序
-      final sortedWords = (db.words
-          .where((w) => w.senses.isNotEmpty && !tracked.contains(w.lemma))
-          .toList()
-        ..sort((a, b) {
-          double score(WordEntryModel w) =>
-              (w.frequency?.importanceScore ?? 0) +
-              (w.inOfficialList ? 0.5 : 0) +
-              ((6 - (w.level ?? 6)) * 0.1);
-          return score(b).compareTo(score(a));
-        }));
-
-      // 片語：也加入新學隊列（優先度稍低，取 20% 配額）
-      final phraseQuota = (remaining * 0.2).round();
-      final wordQuota   = remaining - phraseQuota;
-
-      for (final w in sortedWords.take(wordQuota)) {
-        if (w.senses.isEmpty) continue;
-        // 只加入已解鎖的第一個 sense
-        final sense = w.senses.first;
-        queue.add(StudyItem(lemma: w.lemma, senseId: sense.senseId, word: w, sense: sense, isNew: true));
+      switch (mode) {
+        case SessionMode.custom:
+          queue = _buildCustomQueue(db, customList ?? []);
+        case SessionMode.weakWords:
+          final weak = _fsrs.getWeakWords(limit: 20);
+          queue = _buildCustomQueue(db, weak);
+        case SessionMode.daily:
+          queue = await _buildDailyQueue(db);
       }
 
-      if (phraseQuota > 0) {
-        final sortedPhrases = (db.phrases
-            .where((p) => p.senses.isNotEmpty && !tracked.contains(p.lemma))
-            .toList()
-          ..sort((a, b) =>
-              (b.frequency?.importanceScore ?? 0).compareTo(a.frequency?.importanceScore ?? 0)));
-        for (final p in sortedPhrases.take(phraseQuota)) {
-          if (p.senses.isEmpty) continue;
-          // 將片語包成 WordEntryModel 相容格式（複用 word 欄位）
-          final fakeWord = WordEntryModel(
-            lemma: p.lemma, pos: ['phrase'],
-            level: null, inOfficialList: false,
-            frequency: p.frequency, senses: p.senses,
-            rootInfo: null, confusionNotes: const [],
-            synonyms: const [], antonyms: const [],
-            derivedForms: const [], lastUpdated: p.lastUpdated,
-            collocations: const [],
-          );
-          queue.add(StudyItem(
+      queue.shuffle();
+
+      state = FlashcardSessionState(
+        queue: queue,
+        isComplete: queue.isEmpty,
+        mode: mode,
+        nextIntervals: queue.isNotEmpty
+            ? _fsrs.getNextIntervals(queue.first.lemma, queue.first.senseId)
+            : null,
+      );
+    } catch (_) {
+      state = const FlashcardSessionState(isComplete: true);
+    }
+  }
+
+  Future<List<StudyItem>> _buildDailyQueue(VocabDatabaseModel db) async {
+    final dailyGoal = _ref.read(dailyGoalProvider);
+    final queue = <StudyItem>[];
+
+    // 1. 到期複習卡片（優先）
+    final dueCards = _fsrs.getDueCards(limit: dailyGoal * 3);
+    for (final card in dueCards) {
+      final w = db.words.where((e) => e.lemma == card.lemma).firstOrNull;
+      if (w != null && w.senses.isNotEmpty) {
+        final s = w.senses.where((e) => e.senseId == card.senseId).firstOrNull
+            ?? w.senses.first;
+        queue.add(StudyItem(
+            lemma: w.lemma, senseId: s.senseId,
+            word: w, sense: s, isNew: false));
+        continue;
+      }
+      final p = db.phrases.where((e) => e.lemma == card.lemma).firstOrNull;
+      if (p != null && p.senses.isNotEmpty) {
+        queue.add(StudyItem(
             lemma: p.lemma, senseId: p.senses.first.senseId,
-            word: fakeWord, sense: p.senses.first,
-            isNew: true, isPhrase: true,
-          ));
+            word: _phraseToWord(p), sense: p.senses.first,
+            isNew: false, isPhrase: true));
+      }
+    }
+
+    // 2. 今日新詞配額
+    final remaining = _fsrs.getRemainingNewCardsToday(dailyGoal);
+    if (remaining > 0) {
+      final reviewedLemmas = <String>{
+        ...dueCards.map((c) => c.lemma),
+        ..._fsrs.getAllLearnedWords(),
+      };
+
+      int added = 0;
+
+      // 單字（按頻率排序）
+      final sortedWords = db.words
+          .where((w) => w.senses.isNotEmpty && !reviewedLemmas.contains(w.lemma))
+          .toList()
+        ..sort((a, b) => (b.frequency?.importanceScore ?? 0).compareTo(a.frequency?.importanceScore ?? 0));
+
+      for (final w in sortedWords) {
+        if (added >= remaining) break;
+        queue.add(StudyItem(
+            lemma: w.lemma, senseId: w.senses.first.senseId,
+            word: w, sense: w.senses.first, isNew: true));
+        added++;
+      }
+
+      // 片語補足
+      if (added < remaining) {
+        final sortedPhrases = db.phrases
+            .where((p) => p.senses.isNotEmpty && !reviewedLemmas.contains(p.lemma))
+            .toList()
+          ..sort((a, b) => (b.frequency?.importanceScore ?? 0).compareTo(a.frequency?.importanceScore ?? 0));
+
+        for (final p in sortedPhrases) {
+          if (added >= remaining) break;
+          queue.add(StudyItem(
+              lemma: p.lemma, senseId: p.senses.first.senseId,
+              word: _phraseToWord(p), sense: p.senses.first,
+              isNew: true, isPhrase: true));
+          added++;
         }
       }
     }
 
-    queue.shuffle();
-    state = FlashcardSessionState(
-      queue: queue, isComplete: queue.isEmpty,
-      nextIntervals: queue.isNotEmpty ? _fsrs.getNextIntervals(queue.first.lemma, queue.first.senseId) : null,
-    );
+    return queue;
   }
+
+  List<StudyItem> _buildCustomQueue(VocabDatabaseModel db, List<String> lemmas) {
+    final result = <StudyItem>[];
+    for (final lemma in lemmas) {
+      final w = db.words.where((e) => e.lemma == lemma).firstOrNull;
+      if (w != null && w.senses.isNotEmpty) {
+        result.add(StudyItem(
+            lemma: w.lemma, senseId: w.senses.first.senseId,
+            word: w, sense: w.senses.first));
+        continue;
+      }
+      final p = db.phrases.where((e) => e.lemma == lemma).firstOrNull;
+      if (p != null && p.senses.isNotEmpty) {
+        result.add(StudyItem(
+            lemma: p.lemma, senseId: p.senses.first.senseId,
+            word: _phraseToWord(p), sense: p.senses.first,
+            isPhrase: true));
+      }
+    }
+    return result;
+  }
+
+  WordEntryModel _phraseToWord(PhraseEntryModel p) => WordEntryModel(
+        lemma: p.lemma, pos: ['phrase'], level: null,
+        inOfficialList: false, frequency: p.frequency,
+        senses: p.senses, rootInfo: null,
+        confusionNotes: const [], synonyms: const [],
+        antonyms: const [], derivedForms: const [],
+        lastUpdated: p.lastUpdated, collocations: const [],
+      );
 
   void flip() => state = state.copyWith(isFlipped: true);
 
   Future<void> rate(FSRSRating rating) async {
     final item = state.currentItem;
     if (item == null) return;
+
     await _fsrs.reviewCard(item.lemma, item.senseId, rating);
+
     final nextIndex = state.currentIndex + 1;
     final isComplete = nextIndex >= state.queue.length;
+
     state = state.copyWith(
       currentIndex: nextIndex,
       isFlipped: false,
       isComplete: isComplete,
-      correctCount: state.correctCount + (rating == FSRSRating.good || rating == FSRSRating.easy ? 1 : 0),
+      correctCount: state.correctCount +
+          (rating == FSRSRating.good || rating == FSRSRating.easy ? 1 : 0),
       totalSeen: state.totalSeen + 1,
       nextIntervals: !isComplete
-          ? _fsrs.getNextIntervals(state.queue[nextIndex].lemma, state.queue[nextIndex].senseId)
+          ? _fsrs.getNextIntervals(
+              state.queue[nextIndex].lemma, state.queue[nextIndex].senseId)
           : null,
     );
+
+    // ★ 即時刷新所有統計
+    _ref.read(statsRefreshTriggerProvider.notifier).state++;
   }
 }
+
+final studySessionProvider =
+    StateNotifierProvider<FlashcardSessionNotifier, FlashcardSessionState>((ref) {
+  final fsrs = ref.watch(fsrsServiceProvider);
+  final vocab = ref.watch(localVocabServiceProvider);
+  return FlashcardSessionNotifier(fsrs, vocab, ref);
+});
 
 // ── Cloze Session ──────────────────────────────────────────
 
@@ -195,8 +285,8 @@ class ClozeItem {
   final WordEntryModel word;
   final VocabSenseModel sense;
   final String sentence;
-  final String answer;    // 正確單字（小寫）
-  final String display;   // 原始句子（含答案位置提示）
+  final String answer;
+  final String display;
 
   const ClozeItem({
     required this.word, required this.sense,
@@ -207,278 +297,327 @@ class ClozeItem {
 class ClozeSessionState {
   final List<ClozeItem> items;
   final int currentIndex;
-  final String? userInput;
-  final bool? isCorrect;
+  final String? userAnswer;
+  final bool isAnswered;
   final bool isComplete;
   final int correctCount;
 
   const ClozeSessionState({
-    this.items = const [], this.currentIndex = 0, this.userInput,
-    this.isCorrect, this.isComplete = false, this.correctCount = 0,
+    this.items = const [], this.currentIndex = 0,
+    this.userAnswer, this.isAnswered = false,
+    this.isComplete = false, this.correctCount = 0,
   });
 
-  ClozeItem? get current => items.isNotEmpty && currentIndex < items.length ? items[currentIndex] : null;
+  ClozeItem? get current =>
+      items.isNotEmpty && currentIndex < items.length ? items[currentIndex] : null;
+
   double get progress => items.isEmpty ? 0.0 : currentIndex / items.length;
 
+  bool get isCorrect =>
+      userAnswer?.toLowerCase().trim() == current?.answer.toLowerCase();
+
   ClozeSessionState copyWith({
-    List<ClozeItem>? items, int? currentIndex, String? userInput,
-    bool? isCorrect, bool? isComplete, int? correctCount,
-  }) => ClozeSessionState(
-    items: items ?? this.items, currentIndex: currentIndex ?? this.currentIndex,
-    userInput: userInput, isCorrect: isCorrect ?? this.isCorrect,
-    isComplete: isComplete ?? this.isComplete, correctCount: correctCount ?? this.correctCount,
-  );
+    List<ClozeItem>? items, int? currentIndex, String? userAnswer,
+    bool? isAnswered, bool? isComplete, int? correctCount,
+  }) =>
+      ClozeSessionState(
+        items: items ?? this.items, currentIndex: currentIndex ?? this.currentIndex,
+        userAnswer: userAnswer ?? this.userAnswer, isAnswered: isAnswered ?? this.isAnswered,
+        isComplete: isComplete ?? this.isComplete, correctCount: correctCount ?? this.correctCount,
+      );
 }
 
 class ClozeSessionNotifier extends StateNotifier<ClozeSessionState> {
   final LocalVocabService _vocab;
   final FsrsService _fsrs;
+  final Ref _ref;
 
-  ClozeSessionNotifier(this._vocab, this._fsrs) : super(const ClozeSessionState());
+  ClozeSessionNotifier(this._vocab, this._fsrs, this._ref)
+      : super(const ClozeSessionState());
 
   Future<void> start({List<String>? customWordList}) async {
     final db = await _vocab.loadDatabase();
-    final items = <ClozeItem>[];
-    final words = customWordList != null
-        ? customWordList.map((l) => db.words.where((w) => w.lemma == l).firstOrNull).whereType<WordEntryModel>().toList()
-        : (db.words..sort((a, b) => (b.frequency?.totalAppearances ?? 0).compareTo(a.frequency?.totalAppearances ?? 0))).take(200).toList();
-
-    for (final word in words.take(20)) {
-      for (final sense in word.senses) {
-        for (final ex in sense.examples.take(2)) {
-          final text = ex.text;
-          final lower = text.toLowerCase();
-          final lemma = word.lemma.toLowerCase();
-          final idx = lower.indexOf(lemma);
-          if (idx < 0) continue;
-          final blanked = '${text.substring(0, idx)}___${text.substring(idx + lemma.length)}';
-          items.add(ClozeItem(
-            word: word, sense: sense,
-            sentence: blanked, answer: lemma,
-            display: text,
-          ));
-          break;
-        }
-        if (items.where((i) => i.word.lemma == word.lemma).isNotEmpty) break;
-      }
+    final learnedLemmas = customWordList?.toSet() ?? _fsrs.getAllLearnedWords().toSet();
+    if (learnedLemmas.isEmpty) {
+      state = const ClozeSessionState(isComplete: true);
+      return;
     }
-    items.shuffle();
-    state = ClozeSessionState(items: items.take(15).toList(), isComplete: items.isEmpty);
+    final eligible = db.words
+        .where((w) =>
+            learnedLemmas.contains(w.lemma) &&
+            w.senses.isNotEmpty &&
+            w.senses.first.examples.isNotEmpty)
+        .toList()
+      ..shuffle();
+
+    final items = <ClozeItem>[];
+    for (final w in eligible.take(10)) {
+      final s = w.senses.first;
+      final ex = s.examples.first;
+      final sentence = ex.text;
+      if (!sentence.toLowerCase().contains(w.lemma.toLowerCase())) continue;
+      final blank = sentence.replaceAll(
+          RegExp(w.lemma, caseSensitive: false), '______');
+      items.add(ClozeItem(
+        word: w, sense: s, sentence: blank, answer: w.lemma, display: sentence,
+      ));
+    }
+    state = ClozeSessionState(items: items, isComplete: items.isEmpty);
   }
 
-  void submit(String input) {
-    final item = state.current;
-    if (item == null) return;
-    final correct = input.trim().toLowerCase() == item.answer.toLowerCase();
-    state = state.copyWith(
-      userInput: input, isCorrect: correct,
-      correctCount: state.correctCount + (correct ? 1 : 0),
-    );
+  void submit(String answer) {
+    if (state.isAnswered) return;
+    state = state.copyWith(userAnswer: answer, isAnswered: true);
   }
 
   Future<void> next() async {
-    final item = state.current;
-    if (item != null) {
-      final rating = state.isCorrect == true ? FSRSRating.good : FSRSRating.again;
-      await _fsrs.reviewCard(item.word.lemma, item.sense.senseId, rating);
-    }
     final nextIndex = state.currentIndex + 1;
+    final isComplete = nextIndex >= state.items.length;
     state = state.copyWith(
-      currentIndex: nextIndex,
-      isCorrect: null,
-      isComplete: nextIndex >= state.items.length,
+      currentIndex: nextIndex, userAnswer: null,
+      isAnswered: false, isComplete: isComplete,
+      correctCount: state.correctCount + (state.isCorrect ? 1 : 0),
     );
+    if (isComplete) _ref.read(statsRefreshTriggerProvider.notifier).state++;
   }
 }
 
-// ── Multiple Choice Session ────────────────────────────────
+final clozeSessionProvider =
+    StateNotifierProvider<ClozeSessionNotifier, ClozeSessionState>((ref) {
+  final vocab = ref.watch(localVocabServiceProvider);
+  final fsrs = ref.watch(fsrsServiceProvider);
+  return ClozeSessionNotifier(vocab, fsrs, ref);
+});
 
-class MCItem {
-  final WordEntryModel word;
-  final VocabSenseModel sense;
-  final List<String> choices;   // 4 個選項的中文定義
+
+// ── Multiple Choice Session ─────────────────────────────────
+
+class MultipleChoiceItem {
+  final StudyItem item;
+  final List<String> choices;
   final int correctIndex;
 
-  const MCItem({required this.word, required this.sense, required this.choices, required this.correctIndex});
+  const MultipleChoiceItem({
+    required this.item,
+    required this.choices,
+    required this.correctIndex,
+  });
 }
 
-class MCSessionState {
-  final List<MCItem> items;
+class MultipleChoiceSessionState {
+  final List<MultipleChoiceItem> items;
   final int currentIndex;
-  final int? selectedIndex;
+  final int? selectedOption;
+  final bool isAnswered;
   final bool isComplete;
   final int correctCount;
 
-  const MCSessionState({
-    this.items = const [], this.currentIndex = 0, this.selectedIndex,
-    this.isComplete = false, this.correctCount = 0,
+  const MultipleChoiceSessionState({
+    this.items = const [],
+    this.currentIndex = 0,
+    this.selectedOption,
+    this.isAnswered = false,
+    this.isComplete = false,
+    this.correctCount = 0,
   });
 
-  MCItem? get current => items.isNotEmpty && currentIndex < items.length ? items[currentIndex] : null;
-  double get progress => items.isEmpty ? 0.0 : currentIndex / items.length;
+  MultipleChoiceItem? get current => currentIndex < items.length ? items[currentIndex] : null;
+  bool get isCorrect => selectedOption == current?.correctIndex;
+  int? get selectedIndex => selectedOption;
+  double get progress => items.isEmpty ? 0.0 : (currentIndex + 1) / items.length;
 
-  MCSessionState copyWith({
-    List<MCItem>? items, int? currentIndex, int? selectedIndex,
-    bool? isComplete, int? correctCount,
-  }) => MCSessionState(
-    items: items ?? this.items, currentIndex: currentIndex ?? this.currentIndex,
-    selectedIndex: selectedIndex, isComplete: isComplete ?? this.isComplete,
-    correctCount: correctCount ?? this.correctCount,
-  );
+  MultipleChoiceSessionState copyWith({
+    List<MultipleChoiceItem>? items,
+    int? currentIndex,
+    int? selectedOption,
+    bool? isAnswered,
+    bool? isComplete,
+    int? correctCount,
+  }) {
+    return MultipleChoiceSessionState(
+      items: items ?? this.items,
+      currentIndex: currentIndex ?? this.currentIndex,
+      selectedOption: selectedOption,
+      isAnswered: isAnswered ?? this.isAnswered,
+      isComplete: isComplete ?? this.isComplete,
+      correctCount: correctCount ?? this.correctCount,
+    );
+  }
 }
 
-class MCSessionNotifier extends StateNotifier<MCSessionState> {
+class MultipleChoiceSessionNotifier extends StateNotifier<MultipleChoiceSessionState> {
   final LocalVocabService _vocab;
   final FsrsService _fsrs;
+  final Ref _ref;
 
-  MCSessionNotifier(this._vocab, this._fsrs) : super(const MCSessionState());
+  MultipleChoiceSessionNotifier(this._vocab, this._fsrs, this._ref)
+      : super(const MultipleChoiceSessionState());
 
   Future<void> start({List<String>? customWordList}) async {
     final db = await _vocab.loadDatabase();
-    final pool = db.words.where((w) => w.senses.isNotEmpty).toList();
+    final learnedLemmas = customWordList?.toSet() ?? _fsrs.getAllLearnedWords().toSet();
+    if (learnedLemmas.isEmpty) {
+      state = const MultipleChoiceSessionState(isComplete: true);
+      return;
+    }
+    final eligible = db.words
+        .where((w) => learnedLemmas.contains(w.lemma) && w.senses.isNotEmpty)
+        .toList()
+      ..shuffle();
 
-    final target = customWordList != null
-        ? customWordList.map((l) => pool.where((w) => w.lemma == l).firstOrNull).whereType<WordEntryModel>().toList()
-        : (List<WordEntryModel>.from(pool)..shuffle()).take(15).toList();
-
-    final items = <MCItem>[];
-    for (final word in target) {
-      if (word.senses.isEmpty) continue;
-      final sense = word.senses.first;
-      final correct = sense.zhDef;
-      if (correct.isEmpty) continue;
-
-      // 干擾項：從同詞性的其他單字取
-      final distractors = pool
-          .where((w) => w.lemma != word.lemma &&
-              w.senses.isNotEmpty &&
-              w.senses.first.zhDef.isNotEmpty &&
-              (w.senses.first.pos == sense.pos || true))
-          .toList()
-        ..shuffle();
-
-      final choices = [correct, ...distractors.take(3).map((w) => w.senses.first.zhDef)];
+    final items = <MultipleChoiceItem>[];
+    for (final w in eligible.take(10)) {
+      final studyItem = StudyItem(
+        lemma: w.lemma,
+        senseId: w.senses.first.senseId,
+        word: w,
+        sense: w.senses.first,
+      );
+      
+      // 生成選項
+      final choices = <String>[w.senses.first.zhDef];
+      final otherWords = db.words.where((other) => other.lemma != w.lemma).toList()..shuffle();
+      for (var i = 0; i < 3 && i < otherWords.length; i++) {
+        if (otherWords[i].senses.isNotEmpty) {
+          choices.add(otherWords[i].senses.first.zhDef);
+        }
+      }
       choices.shuffle();
-      items.add(MCItem(
-        word: word, sense: sense,
-        choices: choices, correctIndex: choices.indexOf(correct),
+      final correctIndex = choices.indexOf(w.senses.first.zhDef);
+      
+      items.add(MultipleChoiceItem(
+        item: studyItem,
+        choices: choices,
+        correctIndex: correctIndex,
       ));
     }
 
-    state = MCSessionState(items: items, isComplete: items.isEmpty);
+    state = MultipleChoiceSessionState(items: items, isComplete: items.isEmpty);
   }
 
-  Future<void> select(int index) async {
-    final item = state.current;
-    if (item == null || state.selectedIndex != null) return;
-    final isCorrect = index == item.correctIndex;
-    final rating = isCorrect ? FSRSRating.good : FSRSRating.again;
-    await _fsrs.reviewCard(item.word.lemma, item.sense.senseId, rating);
-    state = state.copyWith(
-      selectedIndex: index,
-      correctCount: state.correctCount + (isCorrect ? 1 : 0),
-    );
+  void select(int option) {
+    if (state.isAnswered) return;
+    state = state.copyWith(selectedOption: option, isAnswered: true);
   }
 
   void next() {
     final nextIndex = state.currentIndex + 1;
+    final isComplete = nextIndex >= state.items.length;
     state = state.copyWith(
-      currentIndex: nextIndex, selectedIndex: null,
-      isComplete: nextIndex >= state.items.length,
+      currentIndex: nextIndex,
+      selectedOption: null,
+      isAnswered: false,
+      isComplete: isComplete,
+      correctCount: state.correctCount + (state.isCorrect ? 1 : 0),
     );
+    if (isComplete) _ref.read(statsRefreshTriggerProvider.notifier).state++;
   }
 }
 
-// ── Spelling Session ──────────────────────────────────────
+final mcSessionProvider =
+    StateNotifierProvider<MultipleChoiceSessionNotifier, MultipleChoiceSessionState>((ref) {
+  final vocab = ref.watch(localVocabServiceProvider);
+  final fsrs = ref.watch(fsrsServiceProvider);
+  return MultipleChoiceSessionNotifier(vocab, fsrs, ref);
+});
 
-class SpellingItem {
-  final WordEntryModel word;
-  final VocabSenseModel sense;
-
-  const SpellingItem({required this.word, required this.sense});
-}
+// ── Spelling Session ────────────────────────────────────────
 
 class SpellingSessionState {
-  final List<SpellingItem> items;
+  final List<StudyItem> items;
   final int currentIndex;
-  final String? userInput;
-  final bool? isCorrect;
+  final String? userAnswer;
+  final bool isAnswered;
   final bool isComplete;
   final int correctCount;
 
   const SpellingSessionState({
-    this.items = const [], this.currentIndex = 0, this.userInput,
-    this.isCorrect, this.isComplete = false, this.correctCount = 0,
+    this.items = const [],
+    this.currentIndex = 0,
+    this.userAnswer,
+    this.isAnswered = false,
+    this.isComplete = false,
+    this.correctCount = 0,
   });
 
-  SpellingItem? get current => items.isNotEmpty && currentIndex < items.length ? items[currentIndex] : null;
-  double get progress => items.isEmpty ? 0.0 : currentIndex / items.length;
+  StudyItem? get current => currentIndex < items.length ? items[currentIndex] : null;
+  bool get isCorrect => userAnswer?.toLowerCase().trim() == current?.lemma.toLowerCase();
+  String? get userInput => userAnswer;
+  double get progress => items.isEmpty ? 0.0 : (currentIndex + 1) / items.length;
 
   SpellingSessionState copyWith({
-    List<SpellingItem>? items, int? currentIndex, String? userInput,
-    bool? isCorrect, bool? isComplete, int? correctCount,
-  }) => SpellingSessionState(
-    items: items ?? this.items, currentIndex: currentIndex ?? this.currentIndex,
-    userInput: userInput, isCorrect: isCorrect ?? this.isCorrect,
-    isComplete: isComplete ?? this.isComplete, correctCount: correctCount ?? this.correctCount,
-  );
+    List<StudyItem>? items,
+    int? currentIndex,
+    String? userAnswer,
+    bool? isAnswered,
+    bool? isComplete,
+    int? correctCount,
+  }) {
+    return SpellingSessionState(
+      items: items ?? this.items,
+      currentIndex: currentIndex ?? this.currentIndex,
+      userAnswer: userAnswer,
+      isAnswered: isAnswered ?? this.isAnswered,
+      isComplete: isComplete ?? this.isComplete,
+      correctCount: correctCount ?? this.correctCount,
+    );
+  }
 }
 
 class SpellingSessionNotifier extends StateNotifier<SpellingSessionState> {
   final LocalVocabService _vocab;
   final FsrsService _fsrs;
+  final Ref _ref;
 
-  SpellingSessionNotifier(this._vocab, this._fsrs) : super(const SpellingSessionState());
+  SpellingSessionNotifier(this._vocab, this._fsrs, this._ref)
+      : super(const SpellingSessionState());
 
   Future<void> start({List<String>? customWordList}) async {
     final db = await _vocab.loadDatabase();
-    final pool = db.words.where((w) => w.senses.isNotEmpty).toList();
-    final words = customWordList != null
-        ? customWordList.map((l) => pool.where((w) => w.lemma == l).firstOrNull).whereType<WordEntryModel>().toList()
-        : (List<WordEntryModel>.from(pool)..shuffle()).take(12).toList();
+    final learnedLemmas = customWordList?.toSet() ?? _fsrs.getAllLearnedWords().toSet();
+    if (learnedLemmas.isEmpty) {
+      state = const SpellingSessionState(isComplete: true);
+      return;
+    }
+    final eligible = db.words
+        .where((w) => learnedLemmas.contains(w.lemma) && w.senses.isNotEmpty)
+        .toList()
+      ..shuffle();
 
-    final items = words.map((w) => SpellingItem(word: w, sense: w.senses.first)).toList();
+    final items = eligible.take(10).map((w) {
+      return StudyItem(
+        lemma: w.lemma,
+        senseId: w.senses.first.senseId,
+        word: w,
+        sense: w.senses.first,
+      );
+    }).toList();
+
     state = SpellingSessionState(items: items, isComplete: items.isEmpty);
   }
 
-  void submit(String input) {
-    final item = state.current;
-    if (item == null) return;
-    final correct = input.trim().toLowerCase() == item.word.lemma.toLowerCase();
-    state = state.copyWith(
-      userInput: input, isCorrect: correct,
-      correctCount: state.correctCount + (correct ? 1 : 0),
-    );
+  void submit(String answer) {
+    if (state.isAnswered) return;
+    state = state.copyWith(userAnswer: answer, isAnswered: true);
   }
 
   Future<void> next() async {
-    final item = state.current;
-    if (item != null) {
-      final rating = state.isCorrect == true ? FSRSRating.good : FSRSRating.again;
-      await _fsrs.reviewCard(item.word.lemma, item.sense.senseId, rating);
-    }
     final nextIndex = state.currentIndex + 1;
+    final isComplete = nextIndex >= state.items.length;
     state = state.copyWith(
-      currentIndex: nextIndex, isCorrect: null,
-      isComplete: nextIndex >= state.items.length,
+      currentIndex: nextIndex,
+      userAnswer: null,
+      isAnswered: false,
+      isComplete: isComplete,
+      correctCount: state.correctCount + (state.isCorrect ? 1 : 0),
     );
+    if (isComplete) _ref.read(statsRefreshTriggerProvider.notifier).state++;
   }
 }
 
-// ── Providers ─────────────────────────────────────────────
-
-final studySessionProvider = StateNotifierProvider<FlashcardSessionNotifier, FlashcardSessionState>((ref) {
-  return FlashcardSessionNotifier(ref.watch(fsrsServiceProvider), ref.watch(localVocabServiceProvider), ref);
-});
-
-final clozeSessionProvider = StateNotifierProvider<ClozeSessionNotifier, ClozeSessionState>((ref) {
-  return ClozeSessionNotifier(ref.watch(localVocabServiceProvider), ref.watch(fsrsServiceProvider));
-});
-
-final mcSessionProvider = StateNotifierProvider<MCSessionNotifier, MCSessionState>((ref) {
-  return MCSessionNotifier(ref.watch(localVocabServiceProvider), ref.watch(fsrsServiceProvider));
-});
-
-final spellingSessionProvider = StateNotifierProvider<SpellingSessionNotifier, SpellingSessionState>((ref) {
-  return SpellingSessionNotifier(ref.watch(localVocabServiceProvider), ref.watch(fsrsServiceProvider));
+final spellingSessionProvider =
+    StateNotifierProvider<SpellingSessionNotifier, SpellingSessionState>((ref) {
+  final vocab = ref.watch(localVocabServiceProvider);
+  final fsrs = ref.watch(fsrsServiceProvider);
+  return SpellingSessionNotifier(vocab, fsrs, ref);
 });

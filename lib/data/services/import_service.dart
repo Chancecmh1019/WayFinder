@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:hive/hive.dart';
-import '../../domain/usecases/unified_learning_usecase.dart';
 import '../../core/utils/logger.dart';
 import '../../domain/entities/user_settings.dart';
 import '../models/fsrs_card_model.dart';
@@ -20,7 +19,6 @@ class ImportService {
   final WordFolderRepository _wordFolderRepository;
 
   ImportService({
-    required UnifiedLearningUseCase learningUseCase,
     required UserLocalDataSource userLocalDataSource,
     required WordFolderRepository wordFolderRepository,
   }) : _userLocalDataSource = userLocalDataSource,

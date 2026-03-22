@@ -36,7 +36,7 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
   void _submit() {
     if (_ctrl.text.trim().isEmpty) return;
     final state = ref.read(clozeSessionProvider);
-    if (state.isCorrect != null) return;
+    if (state.isAnswered) return;
     HapticFeedback.lightImpact();
     ref.read(clozeSessionProvider.notifier).submit(_ctrl.text);
   }
@@ -131,7 +131,7 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildBlankSentence(item.sentence, state.isCorrect, isDark, fg),
-                  if (state.isCorrect != null && item.sense.zhDef.isNotEmpty) ...[
+                  if (state.isAnswered && item.sense.zhDef.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(height: 0.5, color: isDark ? AppTheme.gray800 : AppTheme.gray100),
                     const SizedBox(height: 12),
@@ -147,7 +147,7 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
               TextField(
                 controller: _ctrl,
                 focusNode: _focus,
-                enabled: state.isCorrect == null,
+                enabled: !state.isAnswered,
                 textInputAction: TextInputAction.done,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -156,8 +156,8 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamilyEnglish,
                   fontSize: 20, fontWeight: AppTheme.weightSemiBold,
-                  color: state.isCorrect == null ? fg
-                      : (state.isCorrect! ? const Color(0xFF2D7A2D) : const Color(0xFFB84040)),
+                  color: !state.isAnswered ? fg
+                      : (state.isCorrect ? const Color(0xFF2D7A2D) : const Color(0xFFB84040)),
                   letterSpacing: 1.2,
                 ),
                 decoration: InputDecoration(
@@ -169,10 +169,10 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                       borderSide: BorderSide(color: isDark ? AppTheme.gray600 : AppTheme.gray800, width: 1.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  suffixIcon: state.isCorrect == null
+                  suffixIcon: !state.isAnswered
                       ? IconButton(icon: Icon(Icons.send_rounded, size: 20, color: isDark ? AppTheme.gray400 : AppTheme.gray600), onPressed: _submit)
-                      : Icon(state.isCorrect! ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                            color: state.isCorrect! ? const Color(0xFF2D7A2D) : const Color(0xFFB84040)),
+                      : Icon(state.isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                            color: state.isCorrect ? const Color(0xFF2D7A2D) : const Color(0xFFB84040)),
                 ),
               ),
             ]),
@@ -184,14 +184,14 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
           child: SizedBox(
             width: double.infinity, height: 52,
             child: ElevatedButton(
-              onPressed: state.isCorrect == null ? _submit : _next,
+              onPressed: !state.isAnswered ? _submit : _next,
               style: ElevatedButton.styleFrom(
                 backgroundColor: isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
                 foregroundColor: isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
                 elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
               ),
               child: Text(
-                state.isCorrect == null ? '確認'
+                !state.isAnswered ? '確認'
                     : (state.currentIndex + 1 >= state.items.length ? '查看結果' : '下一題'),
                 style: const TextStyle(fontSize: 15, fontWeight: AppTheme.weightSemiBold),
               ),
@@ -203,6 +203,7 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
   }
 
   Widget _buildBlankSentence(String sentence, bool? isCorrect, bool isDark, Color fg) {
+    final state = ref.read(clozeSessionProvider);
     final parts = sentence.split('___');
     if (parts.length < 2) {
       return Text(sentence, style: TextStyle(fontFamily: AppTheme.fontFamilyEnglish, fontSize: 17, color: fg, height: 1.6));
@@ -218,22 +219,22 @@ class _ClozeScreenState extends ConsumerState<ClozeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isCorrect == null
+                color: !state.isAnswered
                     ? (isDark ? AppTheme.gray800 : AppTheme.gray100)
-                    : isCorrect
+                    : state.isCorrect
                         ? const Color(0xFF2D7A2D).withValues(alpha: 0.15)
                         : const Color(0xFFB84040).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                isCorrect == null ? '  ___  ' : (ref.read(clozeSessionProvider).current?.answer ?? ''),
+                !state.isAnswered ? '  ___  ' : (state.current?.answer ?? ''),
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamilyEnglish,
                   fontSize: 17,
                   fontWeight: AppTheme.weightSemiBold,
-                  color: isCorrect == null
+                  color: !state.isAnswered
                       ? AppTheme.gray400
-                      : isCorrect ? const Color(0xFF2D7A2D) : const Color(0xFFB84040),
+                      : state.isCorrect ? const Color(0xFF2D7A2D) : const Color(0xFFB84040),
                 ),
               ),
             ),

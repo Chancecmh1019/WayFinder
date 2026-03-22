@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../../core/providers/app_providers.dart';
 import 'home/home_screen.dart';
 import 'browse/browse_screen.dart';
 import 'study/study_hub_screen.dart';
 import 'grammar/grammar_screen.dart';
 import 'stats/stats_screen.dart';
 
-final _currentTabProvider = StateProvider<int>((_) => 0);
+/// 全域 Tab 狀態 — 讓任何地方都能切換分頁
+final mainTabProvider = StateProvider<int>((_) => 0);
 
 class MainShell extends ConsumerWidget {
   const MainShell({super.key});
@@ -24,7 +26,8 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark     = Theme.of(context).brightness == Brightness.dark;
-    final currentTab = ref.watch(_currentTabProvider);
+    final currentTab = ref.watch(mainTabProvider);
+    final dueCount   = ref.watch(dueCountProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
@@ -34,9 +37,10 @@ class MainShell extends ConsumerWidget {
         bottomNavigationBar: _NavBar(
           currentIndex: currentTab,
           isDark: isDark,
+          dueCount: dueCount,
           onTap: (i) {
             HapticFeedback.selectionClick();
-            ref.read(_currentTabProvider.notifier).state = i;
+            ref.read(mainTabProvider.notifier).state = i;
           },
         ),
       ),
@@ -47,16 +51,13 @@ class MainShell extends ConsumerWidget {
 class _NavBar extends StatelessWidget {
   final int currentIndex;
   final bool isDark;
+  final int dueCount;
   final ValueChanged<int> onTap;
-  const _NavBar({required this.currentIndex, required this.isDark, required this.onTap});
 
-  static const _items = [
-    _NavItem('首頁',  Icons.home_outlined,        Icons.home_rounded),
-    _NavItem('字彙庫', Icons.library_books_outlined, Icons.library_books_rounded),
-    _NavItem('學習',  Icons.school_outlined,       Icons.school_rounded),
-    _NavItem('文法',  Icons.menu_book_outlined,    Icons.menu_book_rounded),
-    _NavItem('統計',  Icons.bar_chart_outlined,    Icons.bar_chart_rounded),
-  ];
+  const _NavBar({
+    required this.currentIndex, required this.isDark,
+    required this.dueCount, required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +65,14 @@ class _NavBar extends StatelessWidget {
     final border   = isDark ? AppTheme.gray800    : const Color(0xFFEAEAEA);
     final active   = isDark ? AppTheme.pureWhite  : AppTheme.pureBlack;
     final inactive = isDark ? AppTheme.gray600    : AppTheme.gray400;
+
+    const items = [
+      _NavItem('首頁',  Icons.home_outlined,           Icons.home_rounded,         false),
+      _NavItem('字彙庫', Icons.library_books_outlined,  Icons.library_books_rounded, false),
+      _NavItem('學習',  Icons.school_outlined,          Icons.school_rounded,        true),
+      _NavItem('文法',  Icons.menu_book_outlined,       Icons.menu_book_rounded,     false),
+      _NavItem('統計',  Icons.bar_chart_outlined,       Icons.bar_chart_rounded,     false),
+    ];
 
     return Container(
       decoration: BoxDecoration(
@@ -75,8 +84,9 @@ class _NavBar extends StatelessWidget {
         child: SizedBox(
           height: 56,
           child: Row(
-            children: List.generate(_items.length, (i) {
+            children: List.generate(items.length, (i) {
               final sel = i == currentIndex;
+              final showBadge = items[i].showBadge && dueCount > 0;
               return Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -84,10 +94,26 @@ class _NavBar extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(sel ? _items[i].activeIcon : _items[i].icon,
-                          size: 22, color: sel ? active : inactive),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Icon(sel ? items[i].activeIcon : items[i].icon,
+                              size: 22, color: sel ? active : inactive),
+                          if (showBadge)
+                            Positioned(
+                              top: -3, right: -6,
+                              child: Container(
+                                width: 8, height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                       const SizedBox(height: 3),
-                      Text(_items[i].label,
+                      Text(items[i].label,
                           style: TextStyle(
                             fontFamily: AppTheme.fontFamilyChinese,
                             fontSize: 10,
@@ -110,5 +136,6 @@ class _NavBar extends StatelessWidget {
 class _NavItem {
   final String label;
   final IconData icon, activeIcon;
-  const _NavItem(this.label, this.icon, this.activeIcon);
+  final bool showBadge;
+  const _NavItem(this.label, this.icon, this.activeIcon, this.showBadge);
 }

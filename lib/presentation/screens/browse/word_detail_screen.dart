@@ -162,7 +162,8 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
           _buildRelated(context, word, isDark),
           if ((word.synonyms as List).isNotEmpty ||
               (word.antonyms as List).isNotEmpty ||
-              (word.derivedForms as List).isNotEmpty)
+              (word.derivedForms as List).isNotEmpty ||
+              ((word.wordFamily ?? []) as List).isNotEmpty)
             _divider(),
 
           // ── Confusion Notes ───────────────────────────────
@@ -406,8 +407,9 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
     final synonyms = word.synonyms as List;
     final antonyms = word.antonyms as List;
     final derived = word.derivedForms as List;
+    final wordFamily = (word.wordFamily ?? []) as List;
 
-    if (synonyms.isEmpty && antonyms.isEmpty && derived.isEmpty) {
+    if (synonyms.isEmpty && antonyms.isEmpty && derived.isEmpty && wordFamily.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -424,6 +426,10 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
         ],
         if (derived.isNotEmpty) ...[
           _RelatedGroup('衍生詞', derived, isDark: isDark, italic: true),
+          const SizedBox(height: 12),
+        ],
+        if (wordFamily.isNotEmpty) ...[
+          _RelatedGroup('同字族', wordFamily, isDark: isDark, italic: false),
         ],
         const SizedBox(height: 8),
       ],

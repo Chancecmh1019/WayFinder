@@ -124,10 +124,10 @@ class ConfusionPairWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
+                color: const Color(0xFFA0A0A0).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.3),
+                  color: const Color(0xFFA0A0A0).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -136,7 +136,7 @@ class ConfusionPairWidget extends StatelessWidget {
                   Icon(
                     Icons.lightbulb_outline,
                     size: 16,
-                    color: Colors.amber.shade700,
+                    color: const Color(0xFFA0A0A0),
                   ),
                   const SizedBox(width: 8),
                   Expanded(

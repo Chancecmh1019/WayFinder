@@ -193,8 +193,8 @@ class _ContextualClozeScreenState extends ConsumerState<ContextualClozeScreen> {
       IconData? icon;
 
       if (_showResult) {
-        if (isCorrect)        { borderColor = Colors.green; bgColor = Colors.green.withValues(alpha: 0.08); icon = Icons.check_circle_outline; }
-        else if (isSelected)  { borderColor = Colors.red;   bgColor = Colors.red.withValues(alpha: 0.08);   icon = Icons.highlight_off; }
+        if (isCorrect)        { borderColor = isDark ? AppTheme.pureWhite : AppTheme.pureBlack; bgColor = isDark ? AppTheme.gray800 : AppTheme.gray100; icon = Icons.check_circle_outline; }
+        else if (isSelected)  { borderColor = isDark ? AppTheme.gray600 : AppTheme.gray400; bgColor = card; icon = Icons.highlight_off; }
         else                  { borderColor = isDark ? AppTheme.gray800 : AppTheme.gray200; bgColor = card; }
       } else {
         borderColor = isSelected
@@ -225,7 +225,7 @@ class _ContextualClozeScreenState extends ConsumerState<ContextualClozeScreen> {
                     style: TextStyle(fontSize: 16, color: fg,
                         fontWeight: isSelected ? AppTheme.weightSemiBold : AppTheme.weightRegular))),
                 if (icon != null)
-                  Icon(icon, color: isCorrect ? Colors.green : Colors.red, size: 22),
+                  Icon(icon, color: isCorrect ? (isDark ? AppTheme.pureWhite : AppTheme.pureBlack) : AppTheme.gray500, size: 22),
               ],
             ),
           ),

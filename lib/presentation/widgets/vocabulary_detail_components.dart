@@ -75,7 +75,7 @@ class _SenseTabsState extends State<SenseTabs> {
                             width: 6,
                             height: 6,
                             decoration: BoxDecoration(
-                              color: Colors.green, // SRS Good color approximation
+                              color: const Color(0xFF3A3A3A), // SRS Good color approximation
                               shape: BoxShape.circle,
                             ),
                           )
@@ -305,9 +305,9 @@ class _SenseTabsState extends State<SenseTabs> {
       final end = indexOfHighlight + lowerHighlight.length;
       spans.add(TextSpan(
         text: text.substring(indexOfHighlight, end),
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: Colors.amber, // Highlight color
+          color: Color(0xFFA0A0A0), // Highlight color
         ),
       ));
       
@@ -558,7 +558,7 @@ class _EnhancedSenseTabsState extends State<EnhancedSenseTabs> with SingleTicker
                             width: 6,
                             height: 6,
                             decoration: BoxDecoration(
-                              color: Colors.green,
+                              color: const Color(0xFF3A3A3A),
                               shape: BoxShape.circle,
                             ),
                           )
@@ -841,9 +841,9 @@ class _EnhancedSenseTabsState extends State<EnhancedSenseTabs> with SingleTicker
       final end = indexOfHighlight + lowerHighlight.length;
       spans.add(TextSpan(
         text: text.substring(indexOfHighlight, end),
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: Colors.amber,
+          color: Color(0xFFA0A0A0),
         ),
       ));
       

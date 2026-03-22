@@ -82,15 +82,15 @@ class _MultipleChoiceScreenState extends ConsumerState<MultipleChoiceScreen> {
           Text('這個英文單字的中文意思是？',
               style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
           const SizedBox(height: 12),
-          Text(item.word.lemma,
+          Text(item.item.lemma,
               style: TextStyle(
                 fontFamily: AppTheme.fontFamilyEnglish,
                 fontSize: 40, fontWeight: AppTheme.weightBold,
                 color: fg, letterSpacing: -1.5, height: 1.1,
               )),
-          if (item.word.pos.isNotEmpty) ...[
+          if (item.item.word.pos.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(item.word.pos.take(2).join(' · '),
+            Text(item.item.word.pos.take(2).join(' · '),
                 style: TextStyle(fontFamily: AppTheme.fontFamilyEnglish,
                     fontSize: 14, color: AppTheme.gray500, fontStyle: FontStyle.italic)),
           ],

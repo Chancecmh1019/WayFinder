@@ -1,8 +1,7 @@
 /// Presentation layer providers
-/// 
-/// This file exports all providers for easy importing
 library;
 
-export 'learning_session_notifier.dart';
-export 'learning_session_provider.dart';
-export 'learning_session_state.dart';
+export 'settings_provider.dart';
+export 'study_provider.dart';
+export 'contextual_enhancement_provider.dart';
+export 'browse_provider.dart';

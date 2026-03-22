@@ -361,9 +361,9 @@ class _ExampleSentenceWidgetState extends ConsumerState<ExampleSentenceWidget> {
       final end = indexOfHighlight + lowerHighlight.length;
       spans.add(TextSpan(
         text: text.substring(indexOfHighlight, end),
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: Colors.amber,
+          color: Color(0xFFA0A0A0),
         ),
       ));
       

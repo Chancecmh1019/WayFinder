@@ -30,7 +30,7 @@ class SynonymsAntonymsWidget extends StatelessWidget {
             title: '同義詞',
             icon: Icons.link,
             words: synonyms,
-            color: Colors.green,
+            color: const Color(0xFF3A3A3A),
           ),
         ],
         
@@ -42,7 +42,7 @@ class SynonymsAntonymsWidget extends StatelessWidget {
             title: '反義詞',
             icon: Icons.compare_arrows,
             words: antonyms,
-            color: Colors.red,
+            color: const Color(0xFF888888),
           ),
         ],
       ],

@@ -161,7 +161,7 @@ class _ContextualMatchingScreenState extends ConsumerState<ContextualMatchingScr
       context: context, barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLarge)),
-        title: const Text('全部配對完成 ✓'),
+        title: const Text('全部配對完成'),
         content: Text('配對 ${_sourceWords.length} 組 · 錯誤 $_errors 次\n準確率 $acc%'),
         actions: [
           TextButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text('完成')),

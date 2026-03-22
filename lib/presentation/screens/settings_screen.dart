@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
 import '../providers/settings_provider.dart';
-import '../providers/unified_learning_provider.dart';
+import '../../core/providers/app_providers.dart';
 import '../../domain/entities/user_settings.dart';
 import '../../core/providers/repository_providers.dart';
 import '../../data/services/export_service.dart';
@@ -427,9 +427,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       // Show info message for Edge TTS
                       if (type == TtsEngineType.edgeTts) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text('Edge TTS 需要網路連線'),
-                            backgroundColor: Colors.blue,
+                            backgroundColor: Color(0xFF2A2A2A),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -630,9 +630,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (context.mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('匯出成功！'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color(0xFF2A2A2A),
           ),
         );
       }
@@ -643,7 +643,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('匯出失敗：$e'),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFF2A2A2A),
           ),
         );
       }
@@ -654,18 +654,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
     try {
       final importService = ref.read(importServiceProvider);
-      
-      if (importService == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('匯入服務未初始化'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
 
       // Show loading
       if (context.mounted) {
@@ -688,11 +676,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       // Show result
       if (context.mounted) {
-        final color = result.isSuccess
-            ? Colors.green
-            : result.hasErrors
-                ? Colors.orange
-                : Colors.blue;
+        const color = Color(0xFF2A2A2A);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -704,7 +688,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         // If successful, refresh stats
         if (result.isSuccess) {
-          ref.read(unifiedStatsRefreshProvider.notifier).state++;
+          ref.read(statsRefreshTriggerProvider.notifier).state++;
         }
       }
     } catch (e) {
@@ -717,7 +701,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('匯入失敗：$e'),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFF2A2A2A),
           ),
         );
       }

@@ -98,6 +98,46 @@ class ExamExampleModelAdapter extends TypeAdapter<ExamExampleModel> {
           typeId == other.typeId;
 }
 
+class KeyWordNoteModelAdapter extends TypeAdapter<KeyWordNoteModel> {
+  @override
+  final int typeId = 64;
+
+  @override
+  KeyWordNoteModel read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return KeyWordNoteModel(
+      word: fields[0] as String,
+      zh: fields[1] as String,
+      note: fields[2] as String?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, KeyWordNoteModel obj) {
+    writer
+      ..writeByte(3)
+      ..writeByte(0)
+      ..write(obj.word)
+      ..writeByte(1)
+      ..write(obj.zh)
+      ..writeByte(2)
+      ..write(obj.note);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KeyWordNoteModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class VocabSenseModelAdapter extends TypeAdapter<VocabSenseModel> {
   @override
   final int typeId = 52;
@@ -115,13 +155,21 @@ class VocabSenseModelAdapter extends TypeAdapter<VocabSenseModel> {
       enDef: fields[3] as String?,
       examples: (fields[4] as List).cast<ExamExampleModel>(),
       generatedExample: fields[5] as String?,
+      examTips: fields[6] as String?,
+      zhPhoneticHint: fields[7] as String?,
+      originNote: fields[8] as String?,
+      whyThisMeaning: fields[9] as String?,
+      keyWordNotes: (fields[10] as List?)?.cast<KeyWordNoteModel>(),
+      usageNotes: fields[11] as String?,
+      grammarNotes: fields[12] as String?,
+      commonMistakes: fields[13] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, VocabSenseModel obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.senseId)
       ..writeByte(1)
@@ -133,7 +181,23 @@ class VocabSenseModelAdapter extends TypeAdapter<VocabSenseModel> {
       ..writeByte(4)
       ..write(obj.examples)
       ..writeByte(5)
-      ..write(obj.generatedExample);
+      ..write(obj.generatedExample)
+      ..writeByte(6)
+      ..write(obj.examTips)
+      ..writeByte(7)
+      ..write(obj.zhPhoneticHint)
+      ..writeByte(8)
+      ..write(obj.originNote)
+      ..writeByte(9)
+      ..write(obj.whyThisMeaning)
+      ..writeByte(10)
+      ..write(obj.keyWordNotes)
+      ..writeByte(11)
+      ..write(obj.usageNotes)
+      ..writeByte(12)
+      ..write(obj.grammarNotes)
+      ..writeByte(13)
+      ..write(obj.commonMistakes);
   }
 
   @override
@@ -624,13 +688,17 @@ class PhraseEntryModelAdapter extends TypeAdapter<PhraseEntryModel> {
       frequency: fields[1] as FrequencyDataModel?,
       senses: (fields[2] as List).cast<VocabSenseModel>(),
       lastUpdated: fields[3] as DateTime?,
+      phraseType: fields[4] as String?,
+      register: fields[5] as String?,
+      difficulty: fields[6] as int?,
+      relatedPhrases: (fields[7] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, PhraseEntryModel obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.lemma)
       ..writeByte(1)
@@ -638,7 +706,15 @@ class PhraseEntryModelAdapter extends TypeAdapter<PhraseEntryModel> {
       ..writeByte(2)
       ..write(obj.senses)
       ..writeByte(3)
-      ..write(obj.lastUpdated);
+      ..write(obj.lastUpdated)
+      ..writeByte(4)
+      ..write(obj.phraseType)
+      ..writeByte(5)
+      ..write(obj.register)
+      ..writeByte(6)
+      ..write(obj.difficulty)
+      ..writeByte(7)
+      ..write(obj.relatedPhrases);
   }
 
   @override
@@ -716,13 +792,14 @@ class WordEntryModelAdapter extends TypeAdapter<WordEntryModel> {
       usageNotes: fields[13] as String?,
       grammarNotes: fields[14] as String?,
       commonMistakes: fields[15] as String?,
+      wordFamily: (fields[16] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, WordEntryModel obj) {
     writer
-      ..writeByte(16)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.lemma)
       ..writeByte(1)
@@ -754,7 +831,9 @@ class WordEntryModelAdapter extends TypeAdapter<WordEntryModel> {
       ..writeByte(14)
       ..write(obj.grammarNotes)
       ..writeByte(15)
-      ..write(obj.commonMistakes);
+      ..write(obj.commonMistakes)
+      ..writeByte(16)
+      ..write(obj.wordFamily);
   }
 
   @override

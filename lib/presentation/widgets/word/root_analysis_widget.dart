@@ -34,7 +34,7 @@ class RootAnalysisWidget extends StatelessWidget {
           icon: Icons.lightbulb_outline,
           title: '記憶策略',
           content: rootInfo.memoryStrategy,
-          iconColor: Colors.amber,
+          iconColor: const Color(0xFFA0A0A0),
         ),
         
         // 衍生詞

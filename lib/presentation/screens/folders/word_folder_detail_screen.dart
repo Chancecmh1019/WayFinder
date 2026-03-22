@@ -266,7 +266,7 @@ class WordFolderDetailScreen extends ConsumerWidget {
                 Navigator.pop(context); // Go back to folders list
               }
             },
-            child: const Text('刪除', style: TextStyle(color: Colors.red)),
+            child: const Text('刪除', style: TextStyle(color: Color(0xFF666666))),
           ),
         ],
       ),

@@ -10,7 +10,6 @@ import '../../data/services/import_service.dart';
 import '../../domain/repositories/review_scheduler_repository.dart';
 import '../../domain/repositories/vocabulary_repository.dart';
 import '../../domain/services/sm2_algorithm.dart';
-import '../../presentation/providers/unified_learning_provider.dart';
 
 /// Provider for ProgressLocalDataSource
 final progressLocalDataSourceProvider = Provider<ProgressLocalDataSource>((ref) {
@@ -94,17 +93,11 @@ final exportServiceProvider = Provider<ExportService>((ref) {
 });
 
 /// Provider for ImportService
-final importServiceProvider = Provider<ImportService?>((ref) {
-  final learningUseCase = ref.watch(unifiedLearningUseCaseProvider);
+final importServiceProvider = Provider<ImportService>((ref) {
   final userLocalDataSource = ref.watch(userLocalDataSourceProvider);
   final wordFolderRepository = ref.watch(wordFolderRepositoryProvider);
   
-  if (learningUseCase == null) {
-    return null;
-  }
-  
   return ImportService(
-    learningUseCase: learningUseCase,
     userLocalDataSource: userLocalDataSource,
     wordFolderRepository: wordFolderRepository,
   );

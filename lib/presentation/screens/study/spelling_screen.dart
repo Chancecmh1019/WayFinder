@@ -36,7 +36,7 @@ class _SpellingScreenState extends ConsumerState<SpellingScreen> {
   void _submit() {
     if (_ctrl.text.trim().isEmpty) return;
     final state = ref.read(spellingSessionProvider);
-    if (state.isCorrect != null) return;
+    if (state.isAnswered) return;
     HapticFeedback.lightImpact();
     ref.read(spellingSessionProvider.notifier).submit(_ctrl.text);
   }
@@ -150,7 +150,7 @@ class _SpellingScreenState extends ConsumerState<SpellingScreen> {
                   ],
                   // Length hint
                   const SizedBox(height: 16),
-                  Text('${item.word.lemma.length} 個字母',
+                  Text('${item.lemma.length} 個字母',
                       style: TextStyle(fontSize: 12, color: AppTheme.gray400)),
                 ]),
               ),
@@ -161,7 +161,7 @@ class _SpellingScreenState extends ConsumerState<SpellingScreen> {
               TextField(
                 controller: _ctrl,
                 focusNode: _focus,
-                enabled: state.isCorrect == null,
+                enabled: !state.isAnswered,
                 textInputAction: TextInputAction.done,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -170,9 +170,9 @@ class _SpellingScreenState extends ConsumerState<SpellingScreen> {
                 style: TextStyle(
                   fontFamily: AppTheme.fontFamilyEnglish,
                   fontSize: 24, fontWeight: AppTheme.weightSemiBold,
-                  color: state.isCorrect == null
+                  color: !state.isAnswered
                       ? fg
-                      : (state.isCorrect! ? const Color(0xFF2D7A2D) : const Color(0xFFB84040)),
+                      : (state.isCorrect ? const Color(0xFF2D7A2D) : const Color(0xFFB84040)),
                   letterSpacing: 1.5,
                 ),
                 decoration: InputDecoration(
@@ -192,24 +192,24 @@ class _SpellingScreenState extends ConsumerState<SpellingScreen> {
                     borderSide: BorderSide(color: isDark ? AppTheme.gray600 : AppTheme.gray800, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  suffixIcon: state.isCorrect == null
+                  suffixIcon: !state.isAnswered
                       ? IconButton(
                           icon: Icon(Icons.send_rounded, size: 20, color: isDark ? AppTheme.gray400 : AppTheme.gray600),
                           onPressed: _submit,
                         )
                       : Icon(
-                          state.isCorrect! ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                          color: state.isCorrect! ? const Color(0xFF2D7A2D) : const Color(0xFFB84040),
+                          state.isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                          color: state.isCorrect ? const Color(0xFF2D7A2D) : const Color(0xFFB84040),
                         ),
                 ),
               ),
 
               // Feedback
-              if (state.isCorrect != null) ...[
+              if (state.isAnswered) ...[
                 const SizedBox(height: 20),
                 _FeedbackCard(
-                  isCorrect: state.isCorrect!,
-                  correctAnswer: item.word.lemma,
+                  isCorrect: state.isCorrect,
+                  correctAnswer: item.lemma,
                   userInput: state.userInput ?? '',
                   isDark: isDark,
                 ),
@@ -223,7 +223,7 @@ class _SpellingScreenState extends ConsumerState<SpellingScreen> {
         // Bottom buttons
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-          child: state.isCorrect == null
+          child: !state.isAnswered
               ? SizedBox(
                   width: double.infinity, height: 52,
                   child: ElevatedButton(

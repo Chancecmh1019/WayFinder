@@ -4,6 +4,7 @@ import '../../data/services/fsrs_service.dart';
 import '../../data/services/tts_service.dart';
 import '../../data/services/hive_service.dart';
 import '../../data/models/vocab_models_enhanced.dart';
+import '../../data/models/fsrs_daily_stats_model.dart';
 
 // ── Core services ──────────────────────────────────────────
 
@@ -24,11 +25,7 @@ final appInitProvider = FutureProvider<bool>((ref) async {
       onTimeout: () => throw Exception('FSRS 初始化超時'));
   await vocab.loadDatabase().timeout(const Duration(seconds: 45),
       onTimeout: () => throw Exception('字彙資料庫載入超時'));
-  
-  // 初始化單字卡片（為所有單字的第一個 sense 創建卡片）
-  // 使用固定的 userId（本地版本）
   await HiveService.initializeVocabularyCards('local_user');
-  
   return true;
 });
 
@@ -61,50 +58,53 @@ final phraseDetailProvider = FutureProvider.family<PhraseEntryModel?, String>((r
   return ref.watch(localVocabServiceProvider).getPhrase(lemma);
 });
 
-// ── FSRS stats (for home screen & stats screen) ────────────
+// ── 全域刷新觸發器（單一 source of truth）─────────────────
+// 每次評分後遞增，所有相關 provider 自動重新計算
 
-/// 刷新觸發器 - 每次學習完成後遞增此值以觸發所有相關provider重新計算
 final statsRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
+// ── FSRS stats ─────────────────────────────────────────────
+
 final streakProvider = Provider<int>((ref) {
-  // 監聽刷新觸發器
   ref.watch(statsRefreshTriggerProvider);
   final fsrs = ref.watch(fsrsServiceProvider);
   return fsrs.isInitialized() ? fsrs.getCurrentStreak() : 0;
 });
 
 final dueCountProvider = Provider<int>((ref) {
-  // 監聽刷新觸發器
   ref.watch(statsRefreshTriggerProvider);
   final fsrs = ref.watch(fsrsServiceProvider);
   return fsrs.isInitialized() ? fsrs.dueCount : 0;
 });
 
 final learnedCountProvider = Provider<int>((ref) {
-  // 監聽刷新觸發器
   ref.watch(statsRefreshTriggerProvider);
   final fsrs = ref.watch(fsrsServiceProvider);
   return fsrs.isInitialized() ? fsrs.learnedCount : 0;
 });
 
 final todayStudiedProvider = Provider<int>((ref) {
-  // 監聽刷新觸發器
   ref.watch(statsRefreshTriggerProvider);
   final fsrs = ref.watch(fsrsServiceProvider);
   return fsrs.isInitialized() ? fsrs.getTodayNewCardsCount() : 0;
 });
 
 final retentionRateProvider = Provider<double>((ref) {
-  // 監聽刷新觸發器
   ref.watch(statsRefreshTriggerProvider);
   final fsrs = ref.watch(fsrsServiceProvider);
   return fsrs.isInitialized() ? fsrs.getRetentionRate() : 100.0;
 });
 
 final weakWordsProvider = Provider<List<String>>((ref) {
-  // 監聽刷新觸發器
   ref.watch(statsRefreshTriggerProvider);
   final fsrs = ref.watch(fsrsServiceProvider);
   return fsrs.isInitialized() ? fsrs.getWeakWords(limit: 10) : [];
 });
 
+/// 今日統計快照（單一 source of truth）
+final todayStatsProvider = Provider<FSRSDailyStatsModel?>((ref) {
+  ref.watch(statsRefreshTriggerProvider);
+  final fsrs = ref.watch(fsrsServiceProvider);
+  if (!fsrs.isInitialized()) return null;
+  return fsrs.getTodayStats();
+});

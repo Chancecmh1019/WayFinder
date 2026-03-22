@@ -8,9 +8,9 @@ import '../../core/providers/tts_providers.dart';
 import '../widgets/common/audio_button.dart';
 import '../../domain/services/fsrs_algorithm.dart';
 
-/// 學�?模�??��? Widget
+/// 學�?模�??��? Widget
 /// 
-/// ?��?不�??�學習模式顯示�??��?互�?介面
+/// ?��?不�??�學習模式顯示�??��?互�?介面
 class LearningModeCard extends ConsumerStatefulWidget {
   final FSRSCardModel card;
   final String mode; // 'flashcard', 'recognition', 'reverse', 'fillBlank', 'spelling', 'distinguish'
@@ -38,14 +38,14 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
   @override
   void initState() {
     super.initState();
-    // ?�在?��??��??��?一次數??
+    // ?�在?��??��??��?一次數??
     _wordDataFuture = _loadWordData();
   }
 
   @override
   void didUpdateWidget(LearningModeCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // ?�卡?�改變�??�新?��??��?並�?置�???
+    // ?�卡?�改變�??�新?��??��?並�?置�???
     if (oldWidget.card.lemma != widget.card.lemma || 
         oldWidget.card.senseId != widget.card.senseId) {
       setState(() {
@@ -82,13 +82,13 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
     }
   }
 
-  /// 翻卡模�?（已實現�?
+  /// 翻卡模�?（已實現�?
   Widget _buildFlashcardMode() {
-    // ?�個模式已經在 fsrs_learning_screen.dart 中實??
+    // ?�個模式已經在 fsrs_learning_screen.dart 中實??
     return const SizedBox.shrink();
   }
 
-  /// 識別模�?：�??��??�中??
+  /// 識別模�?：�??��??�中??
   Widget _buildRecognitionMode() {
     return FutureBuilder(
       future: _wordDataFuture,
@@ -114,7 +114,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '?��?�?��?�中?��?�?,
+                '選擇正確的中文意思',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: AppTheme.weightBold,
@@ -165,7 +165,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                         _isCorrect = option == correctAnswer;
                       });
                       
-                      // 延遲後自?��???
+                      // 延遲後自?��???
                       Future.delayed(const Duration(milliseconds: 800), () {
                         if (mounted && _isCorrect != null) {
                           widget.onRate(_isCorrect! ? FSRSRating.good : FSRSRating.again);
@@ -182,7 +182,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
     );
   }
 
-  /// ?��?模�?：�?中�??�英??
+  /// ?��?模�?：�?中�??�英??
   Widget _buildReverseMode() {
     return FutureBuilder(
       future: _wordDataFuture,
@@ -208,7 +208,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '?��?�?��?�英?�單�?,
+                '選擇正確的英文單字',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: AppTheme.weightBold,
@@ -278,7 +278,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
     );
   }
 
-  /// 填空模�?：根?��??�填�?
+  /// 填空模�?：根?��??�填�?
   Widget _buildFillBlankMode() {
     return FutureBuilder(
       future: _wordDataFuture,
@@ -292,11 +292,11 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
         final example = sense.examples.firstOrNull;
         
         if (example == null) {
-          // 沒�?例句，�?級為識別模�?
+          // 沒�?例句，�?級為識別模�?
           return _buildRecognitionMode();
         }
 
-        // 將�??�中?�單字替?�為空格
+        // 將�??�中?�單字替?�為空格
         final sentenceWithBlank = example.text.replaceAll(
           RegExp(widget.card.lemma, caseSensitive: false),
           '______',
@@ -314,7 +314,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '填入�?��?�單�?,
+                '填入正確的單字',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: AppTheme.weightBold,
@@ -341,7 +341,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
               ),
               const SizedBox(height: 16),
               Text(
-                '?�示�?{sense.zhDef}',
+                '提示：${sense.zhDef}',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.gray500,
@@ -352,7 +352,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                 controller: _textController,
                 enabled: _selectedAnswer == null,
                 decoration: InputDecoration(
-                  hintText: '輸入?��?...',
+                  hintText: '輸入?��?...',
                   filled: true,
                   fillColor: widget.isDark ? AppTheme.gray850 : AppTheme.pureWhite,
                   border: OutlineInputBorder(
@@ -372,7 +372,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                       backgroundColor: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
                       foregroundColor: widget.isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
                     ),
-                    child: const Text('?�交'),
+                    child: const Text('提交'),
                   ),
                 ),
               if (_selectedAnswer != null)
@@ -388,14 +388,14 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                     children: [
                       Icon(
                         _isCorrect! ? Icons.check_circle : Icons.cancel,
-                        color: _isCorrect! ? Colors.green : Colors.red,
+                        color: _isCorrect! ? const Color(0xFF3A3A3A) : const Color(0xFF888888),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _isCorrect! 
-                              ? '�?���? 
-                              : '�?��答�?�?{widget.card.lemma}',
+                              ? '正確！' 
+                              : '正確答案：${widget.card.lemma}',
                           style: TextStyle(
                             fontSize: 14,
                             color: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
@@ -412,7 +412,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
     );
   }
 
-  /// ?�寫模�?：聽?�拼�?
+  /// 拼寫模式：聽音拼寫
   Widget _buildSpellingMode() {
     return FutureBuilder(
       future: _wordDataFuture,
@@ -436,7 +436,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                '?�音?�寫',
+                '聽音拼寫',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: AppTheme.weightBold,
@@ -445,10 +445,10 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                 ),
               ),
               const Spacer(),
-              // ?�放?��?
+              // ?�放?��?
               GestureDetector(
                 onTap: () {
-                  // ?�放?�音
+                  // ?�放?�音
                   ref.read(activeTtsServiceProvider).speak(widget.card.lemma);
                 },
                 child: Container(
@@ -486,7 +486,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                   letterSpacing: 2,
                 ),
                 decoration: InputDecoration(
-                  hintText: '輸入?�寫...',
+                  hintText: '輸入拼寫...',
                   filled: true,
                   fillColor: widget.isDark ? AppTheme.gray850 : AppTheme.pureWhite,
                   border: OutlineInputBorder(
@@ -506,7 +506,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                       backgroundColor: widget.isDark ? AppTheme.pureWhite : AppTheme.pureBlack,
                       foregroundColor: widget.isDark ? AppTheme.pureBlack : AppTheme.pureWhite,
                     ),
-                    child: const Text('?�交'),
+                    child: const Text('提交'),
                   ),
                 ),
               if (_selectedAnswer != null)
@@ -523,13 +523,13 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
                     children: [
                       Icon(
                         _isCorrect! ? Icons.check_circle : Icons.cancel,
-                        color: _isCorrect! ? Colors.green : Colors.red,
+                        color: _isCorrect! ? const Color(0xFF3A3A3A) : const Color(0xFF888888),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         _isCorrect! 
-                            ? '�?���? 
-                            : '�?��答�?�?{widget.card.lemma}',
+                            ? '正確！' 
+                            : '正確答案：${widget.card.lemma}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: AppTheme.weightMedium,
@@ -546,9 +546,9 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
     );
   }
 
-  /// 辨�?模�?：相似�?辨�?
+  /// 辨識模式：相似詞辨識
   Widget _buildDistinguishMode() {
-    // ?�個模式�?要混淆�??��?，暫?��?級為識別模�?
+    // ?�個模式�?要混淆�??��?，暫?��?級為識別模�?
     return _buildRecognitionMode();
   }
 
@@ -582,7 +582,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
             .firstOrNull ??
         word.senses.first;
     
-    // ?��??��?（�??�模式�?
+    // ?��??��?（�??�模式�?
     final options = <String>[sense.zhDef];
     final otherWords = db.words.where((w) => w.lemma != widget.card.lemma).toList()..shuffle();
     for (var i = 0; i < 3 && i < otherWords.length; i++) {
@@ -592,7 +592,7 @@ class _LearningModeCardState extends ConsumerState<LearningModeCard> {
     }
     options.shuffle();
     
-    // ?��??��?（�??�模式�?
+    // ?��??��?（�??�模式�?
     final reverseOptions = <String>[widget.card.lemma];
     for (var i = 0; i < 3 && i < otherWords.length; i++) {
       reverseOptions.add(otherWords[i].lemma);
@@ -639,11 +639,11 @@ class _OptionButton extends StatelessWidget {
 
     if (isCorrect) {
       bg = isDark ? AppTheme.gray700 : AppTheme.gray200;
-      border = Colors.green;
+      border = const Color(0xFF3A3A3A);
       fg = isDark ? AppTheme.pureWhite : AppTheme.pureBlack;
     } else if (isWrong) {
       bg = isDark ? AppTheme.gray850 : AppTheme.gray50;
-      border = Colors.red;
+      border = const Color(0xFF888888);
       fg = isDark ? AppTheme.gray500 : AppTheme.gray400;
     } else if (isSelected) {
       bg = isDark ? AppTheme.gray800 : AppTheme.gray100;
@@ -696,9 +696,9 @@ class _OptionButton extends StatelessWidget {
               ),
             ),
             if (isCorrect)
-              const Icon(Icons.check_circle, color: Colors.green, size: 20),
+              Icon(Icons.check_circle, color: Color(0xFF3A3A3A), size: 20),
             if (isWrong)
-              const Icon(Icons.cancel, color: Colors.red, size: 20),
+              Icon(Icons.cancel, color: Color(0xFF888888), size: 20),
           ],
         ),
       ),

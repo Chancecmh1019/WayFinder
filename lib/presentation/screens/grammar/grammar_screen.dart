@@ -27,7 +27,7 @@ class GrammarScreen extends ConsumerWidget {
                 Text('文法句型', style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     letterSpacing: -0.5, fontFamily: AppTheme.fontFamilyChinese)),
                 const SizedBox(height: 4),
-                Text('學測高頻句型  ·  21 個考點',
+                Text('學測高頻句型',
                     style: TextStyle(fontSize: 13, color: AppTheme.gray500)),
                 const SizedBox(height: 16),
               ]),

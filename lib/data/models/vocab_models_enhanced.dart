@@ -152,6 +152,44 @@ class ExamExampleModel extends Equatable {
 }
 
 
+/// 片語內難字說明（v9.5.0 新增）
+@HiveType(typeId: 64)
+class KeyWordNoteModel extends Equatable {
+  @HiveField(0)
+  final String word;
+
+  @HiveField(1)
+  final String zh;
+
+  @HiveField(2)
+  final String? note;
+
+  const KeyWordNoteModel({
+    required this.word,
+    required this.zh,
+    this.note,
+  });
+
+  factory KeyWordNoteModel.fromJson(Map<String, dynamic> json) {
+    return KeyWordNoteModel(
+      word: json['word'] as String? ?? '',
+      zh: json['zh'] as String? ?? '',
+      note: json['note'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'word': word,
+      'zh': zh,
+      if (note != null) 'note': note,
+    };
+  }
+
+  @override
+  List<Object?> get props => [word, zh, note];
+}
+
 /// 詞彙義項（Sense）
 @HiveType(typeId: 52)
 class VocabSenseModel extends Equatable {
@@ -173,6 +211,30 @@ class VocabSenseModel extends Equatable {
   @HiveField(5)
   final String? generatedExample;
 
+  @HiveField(6)
+  final String? examTips; // v9.0.0 新增：考試建議
+
+  @HiveField(7)
+  final String? zhPhoneticHint; // v9.0.0 新增：發音提示
+
+  @HiveField(8)
+  final String? originNote; // v9.5.0 新增：詞源說明（片語用）
+
+  @HiveField(9)
+  final String? whyThisMeaning; // v9.5.0 新增：為什麼是這個意思（片語用）
+
+  @HiveField(10)
+  final List<KeyWordNoteModel>? keyWordNotes; // v9.5.0 新增：片語內難字說明
+
+  @HiveField(11)
+  final String? usageNotes; // v9.5.0 新增：用法說明（片語用）
+
+  @HiveField(12)
+  final String? grammarNotes; // v9.5.0 新增：文法規則（片語用）
+
+  @HiveField(13)
+  final String? commonMistakes; // v9.5.0 新增：常見錯誤（片語用）
+
   const VocabSenseModel({
     required this.senseId,
     required this.pos,
@@ -180,6 +242,14 @@ class VocabSenseModel extends Equatable {
     this.enDef,
     required this.examples,
     this.generatedExample,
+    this.examTips,
+    this.zhPhoneticHint,
+    this.originNote,
+    this.whyThisMeaning,
+    this.keyWordNotes,
+    this.usageNotes,
+    this.grammarNotes,
+    this.commonMistakes,
   });
 
   factory VocabSenseModel.fromJson(Map<String, dynamic> json) {
@@ -197,6 +267,16 @@ class VocabSenseModel extends Equatable {
               .toList() ??
           [],
       generatedExample: json['generated_example'] as String?,
+      examTips: json['exam_tips'] as String?,
+      zhPhoneticHint: json['zh_phonetic_hint'] as String?,
+      originNote: json['origin_note'] as String?,
+      whyThisMeaning: json['why_this_meaning'] as String?,
+      keyWordNotes: (json['key_word_notes'] as List<dynamic>?)
+              ?.map((e) => KeyWordNoteModel.fromJson(e as Map<String, dynamic>))
+              .toList(),
+      usageNotes: json['usage_notes'] as String?,
+      grammarNotes: json['grammar_notes'] as String?,
+      commonMistakes: json['common_mistakes'] as String?,
     );
   }
 
@@ -208,11 +288,34 @@ class VocabSenseModel extends Equatable {
       if (enDef != null) 'en_def': enDef,
       'examples': examples.map((e) => e.toJson()).toList(),
       if (generatedExample != null) 'generated_example': generatedExample,
+      if (examTips != null) 'exam_tips': examTips,
+      if (zhPhoneticHint != null) 'zh_phonetic_hint': zhPhoneticHint,
+      if (originNote != null) 'origin_note': originNote,
+      if (whyThisMeaning != null) 'why_this_meaning': whyThisMeaning,
+      if (keyWordNotes != null) 'key_word_notes': keyWordNotes!.map((e) => e.toJson()).toList(),
+      if (usageNotes != null) 'usage_notes': usageNotes,
+      if (grammarNotes != null) 'grammar_notes': grammarNotes,
+      if (commonMistakes != null) 'common_mistakes': commonMistakes,
     };
   }
 
   @override
-  List<Object?> get props => [senseId, pos, zhDef, enDef, examples, generatedExample];
+  List<Object?> get props => [
+        senseId,
+        pos,
+        zhDef,
+        enDef,
+        examples,
+        generatedExample,
+        examTips,
+        zhPhoneticHint,
+        originNote,
+        whyThisMeaning,
+        keyWordNotes,
+        usageNotes,
+        grammarNotes,
+        commonMistakes,
+      ];
 }
 
 /// 頻率資料
@@ -876,11 +979,27 @@ class PhraseEntryModel extends Equatable {
   @HiveField(3)
   final DateTime? lastUpdated;
 
+  @HiveField(4)
+  final String? phraseType; // v9.5.0 新增：phrasal_verb / prepositional / idiom / proverb / general
+
+  @HiveField(5)
+  final String? register; // v9.5.0 新增：neutral / formal / informal
+
+  @HiveField(6)
+  final int? difficulty; // v9.5.0 新增：難度 1~6
+
+  @HiveField(7)
+  final List<String>? relatedPhrases; // v9.5.0 新增：相關片語
+
   const PhraseEntryModel({
     required this.lemma,
     this.frequency,
     required this.senses,
     this.lastUpdated,
+    this.phraseType,
+    this.register,
+    this.difficulty,
+    this.relatedPhrases,
   });
 
   factory PhraseEntryModel.fromJson(Map<String, dynamic> json) {
@@ -898,6 +1017,10 @@ class PhraseEntryModel extends Equatable {
       lastUpdated: json['last_updated'] != null
           ? DateTime.parse(json['last_updated'] as String)
           : null,
+      phraseType: json['phrase_type'] as String?,
+      register: json['register'] as String?,
+      difficulty: json['difficulty'] as int?,
+      relatedPhrases: (json['related_phrases'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -907,11 +1030,15 @@ class PhraseEntryModel extends Equatable {
       if (frequency != null) 'frequency': frequency!.toJson(),
       'senses': senses.map((e) => e.toJson()).toList(),
       if (lastUpdated != null) 'last_updated': lastUpdated!.toIso8601String(),
+      if (phraseType != null) 'phrase_type': phraseType,
+      if (register != null) 'register': register,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (relatedPhrases != null) 'related_phrases': relatedPhrases,
     };
   }
 
   @override
-  List<Object?> get props => [lemma, frequency, senses, lastUpdated];
+  List<Object?> get props => [lemma, frequency, senses, lastUpdated, phraseType, register, difficulty, relatedPhrases];
 }
 
 /// 搭配詞組
@@ -997,6 +1124,9 @@ class WordEntryModel extends Equatable {
   @HiveField(15)
   final String? commonMistakes;
 
+  @HiveField(16)
+  final List<String>? wordFamily; // v9.5.0 新增：同字族詞彙
+
   const WordEntryModel({
     required this.lemma,
     required this.pos,
@@ -1014,6 +1144,7 @@ class WordEntryModel extends Equatable {
     this.usageNotes,
     this.grammarNotes,
     this.commonMistakes,
+    this.wordFamily,
   });
 
   factory WordEntryModel.fromJson(Map<String, dynamic> json) {
@@ -1051,6 +1182,7 @@ class WordEntryModel extends Equatable {
       usageNotes: json['usage_notes'] as String?,
       grammarNotes: json['grammar_notes'] as String?,
       commonMistakes: json['common_mistakes'] as String?,
+      wordFamily: (json['word_family'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -1072,6 +1204,7 @@ class WordEntryModel extends Equatable {
       if (usageNotes != null) 'usage_notes': usageNotes,
       if (grammarNotes != null) 'grammar_notes': grammarNotes,
       if (commonMistakes != null) 'common_mistakes': commonMistakes,
+      if (wordFamily != null) 'word_family': wordFamily,
     };
   }
 
@@ -1093,7 +1226,86 @@ class WordEntryModel extends Equatable {
         usageNotes,
         grammarNotes,
         commonMistakes,
+        wordFamily,
       ];
+}
+
+/// 參考資料庫元素（字首、字根、字尾）
+class ReferenceDatabaseElement {
+  final String element;
+  final String zh;
+  final String en;
+  final String lang;
+  final List<String> familyExamples;
+
+  const ReferenceDatabaseElement({
+    required this.element,
+    required this.zh,
+    required this.en,
+    required this.lang,
+    required this.familyExamples,
+  });
+
+  factory ReferenceDatabaseElement.fromJson(Map<String, dynamic> json) {
+    return ReferenceDatabaseElement(
+      element: json['element'] as String? ?? '',
+      zh: json['zh'] as String? ?? '',
+      en: json['en'] as String? ?? '',
+      lang: json['lang'] as String? ?? '',
+      familyExamples: (json['family_examples'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'element': element,
+      'zh': zh,
+      'en': en,
+      'lang': lang,
+      'family_examples': familyExamples,
+    };
+  }
+}
+
+/// 參考資料庫（v9.5.0 新增）
+class ReferenceDatabases {
+  final List<ReferenceDatabaseElement> prefixes;
+  final List<ReferenceDatabaseElement> roots;
+  final List<ReferenceDatabaseElement> suffixes;
+
+  const ReferenceDatabases({
+    required this.prefixes,
+    required this.roots,
+    required this.suffixes,
+  });
+
+  factory ReferenceDatabases.fromJson(Map<String, dynamic> json) {
+    return ReferenceDatabases(
+      prefixes: (json['prefixes'] as List<dynamic>?)
+              ?.map((e) => ReferenceDatabaseElement.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      roots: (json['roots'] as List<dynamic>?)
+              ?.map((e) => ReferenceDatabaseElement.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      suffixes: (json['suffixes'] as List<dynamic>?)
+              ?.map((e) => ReferenceDatabaseElement.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'prefixes': prefixes.map((e) => e.toJson()).toList(),
+      'roots': roots.map((e) => e.toJson()).toList(),
+      'suffixes': suffixes.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 /// 完整的詞彙資料庫結構
@@ -1104,6 +1316,7 @@ class VocabDatabaseModel {
   final List<WordEntryModel> words;
   final List<PhraseEntryModel> phrases;
   final List<PatternEntryModel> patterns;
+  final ReferenceDatabases? referenceDatabases; // v9.5.0 新增
 
   const VocabDatabaseModel({
     required this.version,
@@ -1112,6 +1325,7 @@ class VocabDatabaseModel {
     required this.words,
     required this.phrases,
     required this.patterns,
+    this.referenceDatabases,
   });
 
   factory VocabDatabaseModel.fromJson(Map<String, dynamic> json) {
@@ -1134,6 +1348,9 @@ class VocabDatabaseModel {
               ?.map((e) => PatternEntryModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      referenceDatabases: json['reference_databases'] != null
+          ? ReferenceDatabases.fromJson(json['reference_databases'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -1145,6 +1362,7 @@ class VocabDatabaseModel {
       'words': words.map((e) => e.toJson()).toList(),
       'phrases': phrases.map((e) => e.toJson()).toList(),
       'patterns': patterns.map((e) => e.toJson()).toList(),
+      if (referenceDatabases != null) 'reference_databases': referenceDatabases!.toJson(),
     };
   }
 }

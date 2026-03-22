@@ -92,7 +92,7 @@ class SenseUnlockIndicator extends StatelessWidget {
                 Icon(
                   Icons.info_outline,
                   size: 14,
-                  color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                  color: isDark ? const Color(0xFF606060) : const Color(0xFF606060),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -114,14 +114,14 @@ class SenseUnlockIndicator extends StatelessWidget {
                 Icon(
                   Icons.check_circle,
                   size: 14,
-                  color: Colors.green.shade600,
+                  color: const Color(0xFF3A3A3A),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   '已熟練掌握 $masteredSenses 個義項',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.green.shade600,
+                    color: const Color(0xFF3A3A3A),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -136,10 +136,10 @@ class SenseUnlockIndicator extends StatelessWidget {
   Color _getSenseColor(int index, bool isDark) {
     if (index < masteredSenses) {
       // Mastered - green
-      return isDark ? Colors.green.shade700 : Colors.green.shade400;
+      return isDark ? const Color(0xFF3A3A3A) : const Color(0xFF3A3A3A);
     } else if (index < unlockedSenses) {
       // Unlocked but not mastered - blue
-      return isDark ? Colors.blue.shade700 : Colors.blue.shade400;
+      return isDark ? const Color(0xFF606060) : const Color(0xFF606060);
     } else {
       // Locked - grey
       return isDark ? Colors.grey.shade800 : Colors.grey.shade300;
@@ -177,7 +177,7 @@ class CompactSenseUnlockIndicator extends StatelessWidget {
               : Icons.lock_open,
           size: 14,
           color: masteredSenses == totalSenses
-              ? Colors.green.shade600
+              ? const Color(0xFF3A3A3A)
               : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
         ),
         const SizedBox(width: 4),

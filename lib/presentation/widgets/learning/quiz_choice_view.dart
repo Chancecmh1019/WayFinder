@@ -81,7 +81,7 @@ class _QuizChoiceViewState extends State<QuizChoiceView> {
                      onPressed: widget.onContinue,
                      style: ElevatedButton.styleFrom(
                        padding: const EdgeInsets.symmetric(vertical: 16),
-                       backgroundColor: widget.isCorrect == true ? Colors.green : Colors.red,
+                       backgroundColor: widget.isCorrect == true ? const Color(0xFF3A3A3A) : const Color(0xFF888888),
                        foregroundColor: Colors.white,
                        elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -188,12 +188,12 @@ class _QuizChoiceViewState extends State<QuizChoiceView> {
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                         decoration: BoxDecoration(
-                            color: isCorrectState ? Colors.green.withValues(alpha: 0.1) 
-                                 : isWrongState ? Colors.red.withValues(alpha: 0.1)
+                            color: isCorrectState ? const Color(0xFF3A3A3A).withValues(alpha: 0.1) 
+                                 : isWrongState ? const Color(0xFF888888).withValues(alpha: 0.1)
                                  : Theme.of(context).brightness == Brightness.dark ? AppTheme.gray850 : AppTheme.pureWhite, // Bg
                             border: Border.all(
-                                color: isCorrectState ? Colors.green 
-                                     : isWrongState ? Colors.red
+                                color: isCorrectState ? const Color(0xFF3A3A3A) 
+                                     : isWrongState ? const Color(0xFF888888)
                                      : Theme.of(context).dividerColor,
                                 width: (isCorrectState || isWrongState) ? 2 : 1
                             ),
@@ -208,8 +208,8 @@ class _QuizChoiceViewState extends State<QuizChoiceView> {
                                     width: 28, height: 28,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                        color: isCorrectState ? Colors.green 
-                                             : isWrongState ? Colors.red 
+                                        color: isCorrectState ? const Color(0xFF3A3A3A) 
+                                             : isWrongState ? const Color(0xFF888888) 
                                              : Colors.grey.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                     ),
@@ -233,9 +233,9 @@ class _QuizChoiceViewState extends State<QuizChoiceView> {
                                     ),
                                 ),
                                 if (isCorrectState)
-                                    const Icon(Icons.check_circle, color: Colors.green),
+                                    Icon(Icons.check_circle, color: Color(0xFF3A3A3A)),
                                 if (isWrongState)
-                                    const Icon(Icons.cancel, color: Colors.red),
+                                    Icon(Icons.cancel, color: Color(0xFF888888)),
                             ],
                         ),
                     ),

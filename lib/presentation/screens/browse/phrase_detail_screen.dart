@@ -50,15 +50,38 @@ class PhraseDetailScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w600, letterSpacing: -1,
                 color: isDark ? AppTheme.pureWhite : AppTheme.pureBlack)),
               const SizedBox(height: 12),
-              Wrap(spacing: 6, children: phrase.senses.expand((s) => 
-                (s.pos.isNotEmpty) ? [Container(
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                ...phrase.senses.expand((s) => 
+                  (s.pos.isNotEmpty) ? [Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(border: Border.all(
+                        color: isDark ? AppTheme.gray700 : AppTheme.gray200),
+                        borderRadius: BorderRadius.circular(4)),
+                    child: Text(s.pos.toLowerCase(), style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
+                  )] : <Widget>[]
+                ),
+                if (phrase.phraseType != null) Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(border: Border.all(
-                      color: isDark ? AppTheme.gray700 : AppTheme.gray200),
+                  decoration: BoxDecoration(
+                      color: isDark ? AppTheme.gray800 : AppTheme.gray100,
                       borderRadius: BorderRadius.circular(4)),
-                  child: Text(s.pos.toLowerCase(), style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
-                )] : <Widget>[]
-              ).toList()),
+                  child: Text(phrase.phraseType!, style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
+                ),
+                if (phrase.register != null) Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: isDark ? AppTheme.gray800 : AppTheme.gray100,
+                      borderRadius: BorderRadius.circular(4)),
+                  child: Text(phrase.register!, style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
+                ),
+                if (phrase.difficulty != null) Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: isDark ? AppTheme.gray800 : AppTheme.gray100,
+                      borderRadius: BorderRadius.circular(4)),
+                  child: Text('Level ${phrase.difficulty}', style: TextStyle(fontSize: 12, color: AppTheme.gray500)),
+                ),
+              ]),
               if (phrase.frequency != null && 
                   (phrase.frequency!.totalAppearances > 0 || phrase.frequency!.importanceScore > 0)) ...[
                 const SizedBox(height: 8),
@@ -93,6 +116,149 @@ class PhraseDetailScreen extends ConsumerWidget {
                     Text(s.enDef!, style: TextStyle(fontFamily: AppTheme.fontFamilyEnglish,
                         fontSize: 16, fontStyle: FontStyle.italic,
                         color: AppTheme.gray600, height: 1.5)),
+                  ],
+                  if (s.originNote != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray900 : AppTheme.gray50,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.history_edu, size: 14, color: AppTheme.gray500),
+                          const SizedBox(width: 6),
+                          Text('\u8a5e\u6e90\u8aaa\u660e', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.gray500)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(s.originNote!, style: TextStyle(
+                            fontSize: 14, color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                            height: 1.5)),
+                      ]),
+                    ),
+                  ],
+                  if (s.whyThisMeaning != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray900 : AppTheme.gray50,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.lightbulb_outline, size: 14, color: AppTheme.gray500),
+                          const SizedBox(width: 6),
+                          Text('\u70ba\u4ec0\u9ebc\u662f\u9019\u500b\u610f\u601d', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.gray500)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(s.whyThisMeaning!, style: TextStyle(
+                            fontSize: 14, color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                            height: 1.5)),
+                      ]),
+                    ),
+                  ],
+                  if (s.keyWordNotes != null && s.keyWordNotes!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray900 : AppTheme.gray50,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.key, size: 14, color: AppTheme.gray500),
+                          const SizedBox(width: 6),
+                          Text('\u7247\u8a9e\u5167\u96e3\u5b57\u8aaa\u660e', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.gray500)),
+                        ]),
+                        const SizedBox(height: 8),
+                        ...s.keyWordNotes!.map((kw) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('${kw.word}: ${kw.zh}', style: TextStyle(
+                                fontFamily: AppTheme.fontFamilyEnglish,
+                                fontSize: 13, fontWeight: FontWeight.w600,
+                                color: isDark ? AppTheme.gray200 : AppTheme.gray800)),
+                            if (kw.note != null) ...[
+                              const SizedBox(height: 2),
+                              Text(kw.note!, style: TextStyle(
+                                  fontSize: 12, color: AppTheme.gray500, height: 1.4)),
+                            ],
+                          ]),
+                        )),
+                      ]),
+                    ),
+                  ],
+                  if (s.usageNotes != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray900 : AppTheme.gray50,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.info_outline, size: 14, color: AppTheme.gray500),
+                          const SizedBox(width: 6),
+                          Text('\u7528\u6cd5\u8aaa\u660e', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.gray500)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(s.usageNotes!, style: TextStyle(
+                            fontSize: 14, color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                            height: 1.5)),
+                      ]),
+                    ),
+                  ],
+                  if (s.grammarNotes != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray900 : AppTheme.gray50,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.menu_book, size: 14, color: AppTheme.gray500),
+                          const SizedBox(width: 6),
+                          Text('\u6587\u6cd5\u898f\u5247', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.gray500)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(s.grammarNotes!, style: TextStyle(
+                            fontSize: 14, color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                            height: 1.5)),
+                      ]),
+                    ),
+                  ],
+                  if (s.commonMistakes != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray900 : AppTheme.gray50,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Icon(Icons.warning_amber, size: 14, color: AppTheme.gray500),
+                          const SizedBox(width: 6),
+                          Text('\u5e38\u898b\u932f\u8aa4', style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: AppTheme.gray500)),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(s.commonMistakes!, style: TextStyle(
+                            fontSize: 14, color: isDark ? AppTheme.gray300 : AppTheme.gray700,
+                            height: 1.5)),
+                      ]),
+                    ),
                   ],
                   const SizedBox(height: 14),
                   if (s.examples.isNotEmpty) ...[
@@ -140,6 +306,28 @@ class PhraseDetailScreen extends ConsumerWidget {
                     Divider(color: isDark ? AppTheme.gray800 : AppTheme.gray100, height: 28),
                 ]);
               }),
+              if (phrase.relatedPhrases != null && phrase.relatedPhrases!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('\u76f8\u95dc\u7247\u8a9e', style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w700,
+                    color: AppTheme.gray400, letterSpacing: 0.8)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 8, children: phrase.relatedPhrases!.map((rp) =>
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => PhraseDetailScreen(lemma: rp))),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                          color: isDark ? AppTheme.gray800 : AppTheme.gray100,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: Text(rp, style: TextStyle(
+                          fontFamily: AppTheme.fontFamilyEnglish,
+                          fontSize: 13, color: isDark ? AppTheme.gray300 : AppTheme.gray700)),
+                    ),
+                  )
+                ).toList()),
+              ],
               const SizedBox(height: 40),
             ],
           );
